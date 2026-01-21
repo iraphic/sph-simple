@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPH Generator - Telkom Indonesia</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Libraries -->
+    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <div id="root">
+        <div style="text-align: center; padding: 50px; font-family: sans-serif; color: #666;">
+            Loading Application...<br>
+            <small>Jika halaman tidak muncul, pastikan koneksi internet aktif untuk memuat library.</small>
+        </div>
+    </div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Safety check for docx
+        const docx = window.docx;
+        if (!docx) {
+            document.getElementById('root').innerHTML = '<div style="color:red; padding:20px; text-align:center;">Error: Library docx gagal dimuat. Coba refresh halaman.</div>';
+            throw new Error("docx library not loaded");
+        }
+        
+        const { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun, AlignmentType, WidthType, BorderStyle, Header, Footer, ImageRun, VerticalAlign } = docx;
+
+        // Icons
+        const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
+        const IconTrash = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
+        const IconDownload = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+        const IconFileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
+        const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+
+        const SERVICE_OPTIONS = [
+            "Astinet", "Astinet Lite", "Astinet Fit", "Astinet Beda Bandwidth",
+            "Metro Ethernet", "IP Transit Mix", "IP Transit Beda Bandwidth", "VPN IP",
+            "WMS", "WMS Fit", "WMS Lite",
+            "SL WDM", "SIP Trunk"
+        ];
+        
+        const DURATION_OPTIONS = ["12 Bulan", "24 Bulan", "36 Bulan"];
+        const BANDWIDTH_OPTIONS = [
+            10, 20, 30, 50, 100, 200, 300, 400, 500, 1000, 2000, 5000, 10000
+        ].map(n => n + " Mbps");
+        
+        const SL_WDM_BANDWIDTH_OPTIONS = [
+            10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+        ].map(n => n + " Gbps");
+
+        const VPN_IP_BANDWIDTH_OPTIONS = [
+            "40 Kbps", "64 Kbps", "128 Kbps", "256 Kbps", "512 Kbps",
+            "1 Mbps", "2 Mbps", "3 Mbps", "4 Mbps", "5 Mbps", 
+            "10 Mbps", "20 Mbps", "30 Mbps", "40 Mbps", "50 Mbps", 
+            "100 Mbps", "200 Mbps", "300 Mbps", "400 Mbps", "500 Mbps", "1000 Mbps"
+        ];
+
+        const LOCATION_OPTIONS = [
+            "JaBoDeTaBek",
+            "Jawa",
+            "Sumatera",
+            "Kalimantan & KTI"
+        ];
+
+        const ASTINET_PRICING = {
+            1: { "JaBoDeTaBek": 125000, "Jawa": 143000, "Sumatera": 152000, "Kalimantan & KTI": 155000 },
+            2: { "JaBoDeTaBek": 243000, "Jawa": 273000, "Sumatera": 291000, "Kalimantan & KTI": 316000 },
+            3: { "JaBoDeTaBek": 351000, "Jawa": 394000, "Sumatera": 423000, "Kalimantan & KTI": 456000 },
+            4: { "JaBoDeTaBek": 453000, "Jawa": 509000, "Sumatera": 546000, "Kalimantan & KTI": 591000 },
+            5: { "JaBoDeTaBek": 548000, "Jawa": 615000, "Sumatera": 658000, "Kalimantan & KTI": 714000 },
+            6: { "JaBoDeTaBek": 634000, "Jawa": 712000, "Sumatera": 761000, "Kalimantan & KTI": 825000 },
+            7: { "JaBoDeTaBek": 712000, "Jawa": 799000, "Sumatera": 855000, "Kalimantan & KTI": 926000 },
+            8: { "JaBoDeTaBek": 785000, "Jawa": 881000, "Sumatera": 944000, "Kalimantan & KTI": 1021000 },
+            9: { "JaBoDeTaBek": 847000, "Jawa": 950000, "Sumatera": 1018000, "Kalimantan & KTI": 1104000 },
+            10: { "JaBoDeTaBek": 904000, "Jawa": 1013000, "Sumatera": 1085000, "Kalimantan & KTI": 1176000 },
+            20: { "JaBoDeTaBek": 1752000, "Jawa": 1963000, "Sumatera": 2104000, "Kalimantan & KTI": 2278000 },
+            50: { "JaBoDeTaBek": 3409000, "Jawa": 3820000, "Sumatera": 4092000, "Kalimantan & KTI": 4434000 },
+            100: { "JaBoDeTaBek": 5531000, "Jawa": 6195000, "Sumatera": 6638000, "Kalimantan & KTI": 7190000 },
+            200: { "JaBoDeTaBek": 10728000, "Jawa": 12017000, "Sumatera": 12875000, "Kalimantan & KTI": 13948000 },
+            500: { "JaBoDeTaBek": 23982000, "Jawa": 26860000, "Sumatera": 28779000, "Kalimantan & KTI": 31177000 },
+            1000: { "JaBoDeTaBek": 35715000, "Jawa": 40001000, "Sumatera": 42862000, "Kalimantan & KTI": 46427000 }
+        };
+
+        const ASTINET_LITE_PRICING = {
+            1: { "JaBoDeTaBek": 81000, "Jawa": 155000, "Sumatera": 210000, "Kalimantan & KTI": 221000 },
+            2: { "JaBoDeTaBek": 158000, "Jawa": 305000, "Sumatera": 412000, "Kalimantan & KTI": 434000 },
+            3: { "JaBoDeTaBek": 228000, "Jawa": 439000, "Sumatera": 593000, "Kalimantan & KTI": 626000 },
+            5: { "JaBoDeTaBek": 349000, "Jawa": 670000, "Sumatera": 908000, "Kalimantan & KTI": 956000 },
+            10: { "JaBoDeTaBek": 470000, "Jawa": 900000, "Sumatera": 1220000, "Kalimantan & KTI": 1286000 },
+            20: { "JaBoDeTaBek": 910000, "Jawa": 1740000, "Sumatera": 2360000, "Kalimantan & KTI": 2485000 },
+            30: { "JaBoDeTaBek": 1313000, "Jawa": 2509000, "Sumatera": 3404000, "Kalimantan & KTI": 3584000 },
+            40: { "JaBoDeTaBek": 1683000, "Jawa": 3216000, "Sumatera": 4364000, "Kalimantan & KTI": 4592000 },
+            50: { "JaBoDeTaBek": 2020000, "Jawa": 3857000, "Sumatera": 5236000, "Kalimantan & KTI": 5511000 },
+            60: { "JaBoDeTaBek": 2324000, "Jawa": 4440000, "Sumatera": 6023000, "Kalimantan & KTI": 6342000 },
+            70: { "JaBoDeTaBek": 2596000, "Jawa": 4958000, "Sumatera": 6729000, "Kalimantan & KTI": 7081000 },
+            80: { "JaBoDeTaBek": 2837000, "Jawa": 5418000, "Sumatera": 7353000, "Kalimantan & KTI": 7738000 },
+            90: { "JaBoDeTaBek": 3043000, "Jawa": 5812000, "Sumatera": 7887000, "Kalimantan & KTI": 8301000 },
+            100: { "JaBoDeTaBek": 3215000, "Jawa": 6141000, "Sumatera": 8333000, "Kalimantan & KTI": 8770000 }
+        };
+
+        const ASTINET_FIT_PRICING = {
+            1: { "JaBoDeTaBek": 97000, "Jawa": 186000, "Sumatera": 252000, "Kalimantan & KTI": 265000 },
+            2: { "JaBoDeTaBek": 189000, "Jawa": 365000, "Sumatera": 493000, "Kalimantan & KTI": 520000 },
+            3: { "JaBoDeTaBek": 272000, "Jawa": 523000, "Sumatera": 707000, "Kalimantan & KTI": 747000 },
+            5: { "JaBoDeTaBek": 416000, "Jawa": 798000, "Sumatera": 1082000, "Kalimantan & KTI": 1139000 },
+            10: { "JaBoDeTaBek": 560000, "Jawa": 1073000, "Sumatera": 1453000, "Kalimantan & KTI": 1532000 },
+            20: { "JaBoDeTaBek": 1085000, "Jawa": 2075000, "Sumatera": 2814000, "Kalimantan & KTI": 2962000 },
+            30: { "JaBoDeTaBek": 1566000, "Jawa": 2993000, "Sumatera": 4060000, "Kalimantan & KTI": 4275000 },
+            40: { "JaBoDeTaBek": 2008000, "Jawa": 3837000, "Sumatera": 5207000, "Kalimantan & KTI": 5478000 },
+            50: { "JaBoDeTaBek": 2410000, "Jawa": 4602000, "Sumatera": 6247000, "Kalimantan & KTI": 6575000 },
+            60: { "JaBoDeTaBek": 2773000, "Jawa": 5298000, "Sumatera": 7187000, "Kalimantan & KTI": 7568000 },
+            70: { "JaBoDeTaBek": 3096000, "Jawa": 5913000, "Sumatera": 8025000, "Kalimantan & KTI": 8445000 },
+            80: { "JaBoDeTaBek": 3385000, "Jawa": 6465000, "Sumatera": 8774000, "Kalimantan & KTI": 9233000 },
+            90: { "JaBoDeTaBek": 3630000, "Jawa": 6933000, "Sumatera": 9408000, "Kalimantan & KTI": 9902000 },
+            100: { "JaBoDeTaBek": 3901000, "Jawa": 7451000, "Sumatera": 10111000, "Kalimantan & KTI": 10641000 }
+        };
+
+        const ASTINET_BB_GLOBAL_PRICING = {
+            1: { "JaBoDeTaBek": 151000, "Jawa": 174000, "Sumatera": 186000, "Kalimantan & KTI": 225000 },
+            2: { "JaBoDeTaBek": 292000, "Jawa": 337000, "Sumatera": 360000, "Kalimantan & KTI": 435000 },
+            3: { "JaBoDeTaBek": 424000, "Jawa": 489000, "Sumatera": 524000, "Kalimantan & KTI": 633000 },
+            4: { "JaBoDeTaBek": 549000, "Jawa": 634000, "Sumatera": 678000, "Kalimantan & KTI": 819000 },
+            5: { "JaBoDeTaBek": 665000, "Jawa": 766000, "Sumatera": 822000, "Kalimantan & KTI": 990000 },
+            6: { "JaBoDeTaBek": 740000, "Jawa": 853000, "Sumatera": 914000, "Kalimantan & KTI": 1149000 },
+            7: { "JaBoDeTaBek": 835000, "Jawa": 963000, "Sumatera": 1031000, "Kalimantan & KTI": 1298000 },
+            8: { "JaBoDeTaBek": 922000, "Jawa": 1063000, "Sumatera": 1138000, "Kalimantan & KTI": 1433000 },
+            9: { "JaBoDeTaBek": 1001000, "Jawa": 1152000, "Sumatera": 1233000, "Kalimantan & KTI": 1555000 },
+            10: { "JaBoDeTaBek": 1071000, "Jawa": 1233000, "Sumatera": 1321000, "Kalimantan & KTI": 1665000 },
+            20: { "JaBoDeTaBek": 1845000, "Jawa": 2125000, "Sumatera": 2275000, "Kalimantan & KTI": 3236000 },
+            50: { "JaBoDeTaBek": 4165000, "Jawa": 4791000, "Sumatera": 5132000, "Kalimantan & KTI": 7306000 },
+            100: { "JaBoDeTaBek": 7114000, "Jawa": 8183000, "Sumatera": 8767000, "Kalimantan & KTI": 12480000 },
+            200: { "JaBoDeTaBek": 13213000, "Jawa": 15195000, "Sumatera": 16281000, "Kalimantan & KTI": 23181000 },
+            500: { "JaBoDeTaBek": 28908000, "Jawa": 33245000, "Sumatera": 35619000, "Kalimantan & KTI": 44954000 },
+            1000: { "JaBoDeTaBek": 40770000, "Jawa": 46887000, "Sumatera": 50235000, "Kalimantan & KTI": 72988000 }
+        };
+
+        const ASTINET_BB_DOMESTIK_PRICING = {
+            1: { "JaBoDeTaBek": 39000, "Jawa": 44000, "Sumatera": 48000, "Kalimantan & KTI": 86000 },
+            2: { "JaBoDeTaBek": 74000, "Jawa": 83000, "Sumatera": 89000, "Kalimantan & KTI": 163000 },
+            3: { "JaBoDeTaBek": 109000, "Jawa": 122000, "Sumatera": 132000, "Kalimantan & KTI": 239000 },
+            4: { "JaBoDeTaBek": 143000, "Jawa": 161000, "Sumatera": 173000, "Kalimantan & KTI": 314000 },
+            5: { "JaBoDeTaBek": 175000, "Jawa": 198000, "Sumatera": 211000, "Kalimantan & KTI": 385000 },
+            6: { "JaBoDeTaBek": 193000, "Jawa": 218000, "Sumatera": 234000, "Kalimantan & KTI": 424000 },
+            7: { "JaBoDeTaBek": 222000, "Jawa": 250000, "Sumatera": 267000, "Kalimantan & KTI": 488000 },
+            8: { "JaBoDeTaBek": 249000, "Jawa": 280000, "Sumatera": 299000, "Kalimantan & KTI": 547000 },
+            9: { "JaBoDeTaBek": 279000, "Jawa": 314000, "Sumatera": 336000, "Kalimantan & KTI": 613000 },
+            10: { "JaBoDeTaBek": 301000, "Jawa": 339000, "Sumatera": 362000, "Kalimantan & KTI": 663000 },
+            20: { "JaBoDeTaBek": 553000, "Jawa": 621000, "Sumatera": 664000, "Kalimantan & KTI": 1216000 },
+            50: { "JaBoDeTaBek": 1171000, "Jawa": 1312000, "Sumatera": 1406000, "Kalimantan & KTI": 2576000 },
+            100: { "JaBoDeTaBek": 2137000, "Jawa": 2395000, "Sumatera": 2565000, "Kalimantan & KTI": 4702000 },
+            200: { "JaBoDeTaBek": 3711000, "Jawa": 4157000, "Sumatera": 4454000, "Kalimantan & KTI": 8165000 },
+            500: { "JaBoDeTaBek": 7917000, "Jawa": 8869000, "Sumatera": 9501000, "Kalimantan & KTI": 17418000 },
+            1000: { "JaBoDeTaBek": 12545000, "Jawa": 14052000, "Sumatera": 15055000, "Kalimantan & KTI": 19405000 }
+        };
+
+        const SIPTRUNK_OTC_CC = [
+            { max: 50, price: 3000000 },
+            { max: 600, price: 5000000 },
+            { max: 1000, price: 6500000 }
+        ];
+
+        const SIPTRUNK_OTC_NUMBER = [
+            { max: 100, price: 500000 },
+            { max: 200, price: 1000000 },
+            { max: 300, price: 1500000 },
+            { max: 400, price: 2000000 },
+            { max: 500, price: 2500000 },
+            { max: 600, price: 3000000 },
+            { max: 700, price: 3500000 },
+            { max: 800, price: 4000000 },
+            { max: 900, price: 4500000 },
+            { max: 1000, price: 5000000 },
+            { max: 10000, price: 6000000 }
+        ];
+
+        const SIPTRUNK_MRC_NUMBER = [
+            { max: 10, price: 550000 },
+            { max: 30, price: 575000 },
+            { max: 50, price: 595000 },
+            { max: 100, price: 650000 },
+            { max: 200, price: 1165000 },
+            { max: 300, price: 1695000 },
+            { max: 400, price: 2185000 },
+            { max: 500, price: 2640000 },
+            { max: 600, price: 3100000 },
+            { max: 700, price: 3490000 },
+            { max: 800, price: 3840000 },
+            { max: 900, price: 4160000 },
+            { max: 1000, price: 4440000 },
+            { max: 2000, price: 8000000 },
+            { max: 3000, price: 12000000 },
+            { max: 4000, price: 16000000 },
+            { max: 5000, price: 20000000 },
+            { max: 6000, price: 24000000 },
+            { max: 7000, price: 28000000 },
+            { max: 8000, price: 32000000 },
+            { max: 9000, price: 36000000 },
+            { max: 10000, price: 40000000 }
+        ];
+
+        const SIPTRUNK_MRC_CC = {
+            3: { standard: 1450000, ha: 1800000 },
+            5: { standard: 1470000, ha: 1800000 },
+            10: { standard: 1500000, ha: 1900000 },
+            20: { standard: 1580000, ha: 1900000 },
+            30: { standard: 1650000, ha: 2000000 },
+            40: { standard: 1980000, ha: 2400000 },
+            50: { standard: 2480000, ha: 3000000 },
+            60: { standard: 2970000, ha: 3500000 },
+            70: { standard: 3470000, ha: 4000000 },
+            80: { standard: 3960000, ha: 4500000 },
+            90: { standard: 4460000, ha: 5000000 },
+            100: { standard: 4950000, ha: 5500000 },
+            120: { standard: 5940000, ha: 6500000 },
+            140: { standard: 6930000, ha: 7500000 },
+            160: { standard: 7920000, ha: 8500000 },
+            180: { standard: 8910000, ha: 9500000 },
+            200: { standard: 9900000, ha: 10500000 },
+            250: { standard: 12380000, ha: 13000000 },
+            300: { standard: 14850000, ha: 15600000 },
+            350: { standard: 17330000, ha: 18200000 },
+            400: { standard: 19800000, ha: 20100000 },
+            450: { standard: 22280000, ha: 23100000 },
+            500: { standard: 24750000, ha: 25800000 },
+            600: { standard: 29700000, ha: 30900000 },
+            700: { standard: 34650000, ha: 36050000 },
+            800: { standard: 39600000, ha: 41200000 },
+            900: { standard: 44550000, ha: 46350000 },
+            1000: { standard: 49500000, ha: 51500000 }
+        };
+
+        // --- Helpers ---
+        const parseBandwidth = (bwString) => {
+            if (!bwString) return 0;
+            const match = bwString.match(/([\d.]+)\s*(Kbps|Mbps|Gbps)/i);
+            if (!match) return 0;
+            
+            let val = parseFloat(match[1]);
+            const unit = match[2].toLowerCase();
+            
+            if (unit === 'gbps') val *= 1000;
+            if (unit === 'kbps') val /= 1000;
+            
+            return val; // in Mbps
+        };
+
+        const calculateInterpolatedPrice = (bwVal, location, pricingTable) => {
+            if (!bwVal || !location || !pricingTable) return null;
+
+            const sortedKeys = Object.keys(pricingTable)
+                .map(k => parseFloat(k))
+                .sort((a, b) => a - b);
+
+            // Exact match
+            if (pricingTable[bwVal] && pricingTable[bwVal][location]) {
+                return pricingTable[bwVal][location];
+            }
+
+            // Find range
+            let lower = null;
+            let upper = null;
+
+            for (let k of sortedKeys) {
+                if (k < bwVal) lower = k;
+                if (k > bwVal) {
+                    upper = k;
+                    break;
+                }
+            }
+
+            if (lower !== null && upper !== null) {
+                const priceA = pricingTable[lower][location];
+                const priceB = pricingTable[upper][location];
+
+                if (priceA !== undefined && priceB !== undefined) {
+                    const x = bwVal - lower;
+                    const y = upper - lower;
+                    // Formula: Tarif C = Tarif A + ( (x/y) * (Tarif B - Tarif A) )
+                    return priceA + ((x / y) * (priceB - priceA));
+                }
+            }
+
+            return null;
+        };
+
+        // --- Doc Generation Logic ---
+        const generateSPH = async (formData, services) => {
+            const { amName, customerName, subscriptionDuration } = formData;
+            const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: [
+                        // Header Logo (Approximated with Text if Image not available, but here using styled text)
+                        new Paragraph({
+                            alignment: AlignmentType.RIGHT,
+                            children: [
+                                new TextRun({
+                                    text: "Telkom",
+                                    bold: true,
+                                    size: 48, // 24pt
+                                    font: "Times New Roman",
+                                    color: "808080"
+                                }),
+                                new TextRun({
+                                    text: " Indonesia",
+                                    bold: true,
+                                    size: 48,
+                                    font: "Times New Roman",
+                                    color: "FF0000" // Red
+                                }),
+                            ],
+                        }),
+                        new Paragraph({ text: "" }), // Spacer
+
+                        // Date
+                        new Paragraph({
+                            text: `Jakarta, ${dateStr}`,
+                            spacing: { after: 200 },
+                            font: "Times New Roman",
+                        }),
+
+                        // Subject
+                        new Paragraph({
+                            children: [
+                                new TextRun({ text: "Perihal : Surat Penawaran Harga - Layanan Telkom", bold: true, font: "Times New Roman" })
+                            ],
+                            spacing: { after: 200 }
+                        }),
+
+                        // Recipient
+                        new Paragraph({ text: "Kepada Yth.", font: "Times New Roman" }),
+                        new Paragraph({ text: "Manajemen", font: "Times New Roman", strike: true }), // Mimic the red squiggle/edit in image? No, just clean text.
+                        new Paragraph({ text: customerName.toUpperCase(), bold: true, font: "Times New Roman" }),
+                        new Paragraph({ text: "Di Tempat", font: "Times New Roman", spacing: { after: 300 } }),
+
+                        // Opening
+                        new Paragraph({
+                            children: [
+                                new TextRun({ text: "Kami mengucapkan terima kasih atas kepercayaan yang diberikan oleh ", font: "Times New Roman" }),
+                                new TextRun({ text: customerName.toUpperCase(), bold: true, font: "Times New Roman" }),
+                                new TextRun({ text: " kepada PT Telkom Indonesia untuk dapat bekerjasama dalam penyediaan layanan telekomunikasi.", font: "Times New Roman" })
+                            ],
+                            alignment: AlignmentType.JUSTIFIED,
+                            spacing: { after: 200 }
+                        }),
+
+                        new Paragraph({
+                            text: `Sehubungan dengan informasi kebutuhan layanan internet dedicated yang kami terima, bersama ini kami sampaikan penawaran layanan untuk ${customerName.toUpperCase()} sebagai berikut :`,
+                            alignment: AlignmentType.JUSTIFIED,
+                            font: "Times New Roman",
+                            spacing: { after: 300 }
+                        }),
+
+                        // Services Tables
+                        ...services.flatMap((service, index) => {
+                            // Logic to determine rows
+                            // If Metro Ethernet, we might have multiple rows (sites)
+                            // If Astinet, usually 1 row per service entry unless user added multiple sites logic to astinet too? 
+                            // Current form allows adding "Sites" only to Metro. Other services have "Location".
+                            
+                            const isMetro = service.type === 'Metro Ethernet';
+                            const rows = [];
+                            
+                            // Header Row
+                                    const bwUnit = service.type === 'SL WDM' ? "Gbps" : "Mbps";
+                                    const col4Header = service.type === 'SIP Trunk' ? "Spesifikasi" : `BW (${bwUnit})`;
+                                    const headerRow = new TableRow({
+                                        children: [
+                                            "No", "List Kebutuhan", "Site", col4Header, "Harga Aktivasi (Rp)", "Harga Layanan (Rp)", "Ket"
+                                        ].map(text => new TableCell({
+                                            children: [new Paragraph({ 
+                                                children: [new TextRun({ text, bold: true, color: "FFFFFF", font: "Times New Roman", size: 20 })], 
+                                                alignment: AlignmentType.CENTER 
+                                            })],
+                                            shading: { fill: "CC0000" }, // Red background
+                                            verticalAlign: VerticalAlign.CENTER,
+                                            margins: { top: 100, bottom: 100, left: 100, right: 100 }
+                                        }))
+                                    });
+                                    rows.push(headerRow);
+
+                            // Data Rows
+                            let totalOtc = 0;
+                            let totalMrc = 0;
+
+                            if (isMetro) {
+                                service.sites.forEach((site, i) => {
+                                    const otc = parseFloat(service.otc) || 0;
+                                    const mrc = parseFloat(service.mrc) || 0;
+                                    totalOtc += otc;
+                                    totalMrc += mrc;
+
+                                    rows.push(new TableRow({
+                                        children: [
+                                            new TableCell({ children: [new Paragraph({ text: (i + 1).toString(), alignment: AlignmentType.CENTER, font: "Times New Roman" })] }),
+                                            new TableCell({ children: [new Paragraph({ text: service.type, alignment: AlignmentType.CENTER, font: "Times New Roman" })] }),
+                                            new TableCell({ children: [new Paragraph({ text: site.name, alignment: AlignmentType.CENTER, bold: true, font: "Times New Roman" })] }),
+                                            new TableCell({ children: [new Paragraph({ text: site.bandwidth.replace(/\D/g,''), alignment: AlignmentType.CENTER, font: "Times New Roman" })] }), // Extract number
+                                            new TableCell({ children: [new Paragraph({ text: otc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
+                                            new TableCell({ children: [new Paragraph({ text: mrc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
+                                            new TableCell({ children: [new Paragraph({ text: i === 0 ? "Backhaul" : "Site", alignment: AlignmentType.CENTER, font: "Times New Roman" })] }), // Simple logic for Ket
+                                        ]
+                                    }));
+                                });
+                            } else {
+                                // Non-Metro (Astinet etc)
+                                const otc = parseFloat(service.otc) || 0;
+                                const mrc = parseFloat(service.mrc) || 0;
+                                totalOtc = otc;
+                                totalMrc = mrc;
+
+                                rows.push(new TableRow({
+                                    children: [
+                                        new TableCell({ children: [new Paragraph({ text: "1", alignment: AlignmentType.CENTER, font: "Times New Roman" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: service.type, alignment: AlignmentType.CENTER, font: "Times New Roman" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: service.location || "-", alignment: AlignmentType.CENTER, bold: true, font: "Times New Roman" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: service.type === 'SIP Trunk' ? `${service.jumlahNomor || 3} No / ${service.concurrentCall || 3} CC / ${service.ipAddress || 1} IP / ${service.sipTrunkType || 'Standard'}` : (service.type === 'Astinet Beda Bandwidth' ? service.bandwidth : service.bandwidth.replace(/\D/g,'')), alignment: AlignmentType.CENTER, font: "Times New Roman" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: otc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: mrc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: service.remarks || "-", alignment: AlignmentType.CENTER, font: "Times New Roman" })] }),
+                                    ]
+                                }));
+                            }
+
+                            // Total Row
+                            rows.push(new TableRow({
+                                children: [
+                                    new TableCell({ 
+                                        columnSpan: 4,
+                                        children: [new Paragraph({ text: "Total", alignment: AlignmentType.RIGHT, bold: true, font: "Times New Roman" })] 
+                                    }),
+                                    new TableCell({ children: [new Paragraph({ text: totalOtc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
+                                    new TableCell({ children: [new Paragraph({ text: totalMrc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
+                                    new TableCell({ children: [new Paragraph({ text: "", font: "Times New Roman" })] }),
+                                ]
+                            }));
+
+                            return [
+                                new Paragraph({
+                                    children: [new TextRun({ text: (service.type === 'Metro Ethernet' || service.type === 'SIP Trunk') ? service.type : `${service.type} ${service.bandwidth}`, bold: true, size: 24, font: "Times New Roman" })],
+                                    spacing: { before: 200, after: 100 }
+                                }),
+                                new Table({
+                                    rows: rows,
+                                    width: { size: 100, type: WidthType.PERCENTAGE },
+                                })
+                            ];
+                        }),
+
+                        // Grand Total (only if > 1 service)
+                        ...(services.length > 1 ? [
+                            new Paragraph({ text: "", spacing: { after: 200 } }), // Spacer
+                            new Table({
+                                rows: [
+                                    new TableRow({
+                                        children: [
+                                            new TableCell({ 
+                                                children: [new Paragraph({ text: "TOTAL KESELURUHAN", bold: true, font: "Times New Roman", alignment: AlignmentType.RIGHT })],
+                                                columnSpan: 4,
+                                                shading: { fill: "E0E0E0" },
+                                                verticalAlign: VerticalAlign.CENTER
+                                            }),
+                                            new TableCell({ 
+                                                children: [new Paragraph({ text: services.reduce((acc, s) => {
+                                                    let sum = 0;
+                                                    if (s.type === 'Metro Ethernet') {
+                                                        s.sites.forEach(() => sum += parseFloat(s.otc) || 0);
+                                                    } else {
+                                                        sum += parseFloat(s.otc) || 0;
+                                                    }
+                                                    return acc + sum;
+                                                }, 0).toLocaleString('id-ID'), bold: true, font: "Times New Roman", alignment: AlignmentType.RIGHT })],
+                                                shading: { fill: "E0E0E0" },
+                                                verticalAlign: VerticalAlign.CENTER
+                                            }),
+                                            new TableCell({ 
+                                                children: [new Paragraph({ text: services.reduce((acc, s) => {
+                                                    let sum = 0;
+                                                    if (s.type === 'Metro Ethernet') {
+                                                        s.sites.forEach(() => sum += parseFloat(s.mrc) || 0);
+                                                    } else {
+                                                        sum += parseFloat(s.mrc) || 0;
+                                                    }
+                                                    return acc + sum;
+                                                }, 0).toLocaleString('id-ID'), bold: true, font: "Times New Roman", alignment: AlignmentType.RIGHT })],
+                                                shading: { fill: "E0E0E0" },
+                                                verticalAlign: VerticalAlign.CENTER
+                                            }),
+                                            new TableCell({ 
+                                                children: [new Paragraph({ text: "", font: "Times New Roman" })],
+                                                shading: { fill: "E0E0E0" },
+                                                verticalAlign: VerticalAlign.CENTER
+                                            })
+                                        ]
+                                    })
+                                ],
+                                width: { size: 100, type: WidthType.PERCENTAGE },
+                            })
+                        ] : []),
+
+                        // Terms
+                        new Paragraph({
+                            text: `Syarat dan Ketentuan Layanan :`,
+                            spacing: { before: 300, after: 100 },
+                            italics: true,
+                            font: "Times New Roman",
+                            size: 20
+                        }),
+                        ...[
+                            "Harga Layanan bulanan di atas sudah termasuk biaya Local Loop sebesar Rp 950,000 per KM (di atas 5 km)",
+                            "Seluruh Biaya belum termasuk PPN (11%).",
+                            "End Delivery berupa modem yang disediakan Telkom dengan interface port LAN-Ethernet.",
+                            "Kabel LAN Ethernet, perangkat router, mikrotik, access point, catuan listrik, Instalasi Kabel Gedung (IKG) dan CPE lainnya merupakan tanggungan Pelanggan.",
+                            `Masa berlaku penawaran 20 hari sejak tanggal surat ini. (Lama berlangganan: ${subscriptionDuration})`,
+                            "Penawaran bersifat terbatas/rahasia tidak diperkenankan disebarluaskan."
+                        ].map((term, i) => new Paragraph({
+                            text: `${i + 1}. ${term}`,
+                            italics: true,
+                            font: "Times New Roman",
+                            size: 20,
+                            spacing: { after: 50 },
+                            indent: { left: 720, hanging: 360 } // Indentation
+                        })),
+
+                        // Closing
+                        new Paragraph({
+                            text: `Demikian informasi ini kami sampaikan, besar harapan kami dapat selalu memenuhi kebutuhan ${customerName.toUpperCase()} melalui layanan yang kami berikan. Atas perhatiannya kami ucapkan terima kasih.`,
+                            spacing: { before: 300, after: 300 },
+                            alignment: AlignmentType.JUSTIFIED,
+                            font: "Times New Roman"
+                        }),
+
+                        // Signature
+                        new Paragraph({ text: "Hormat saya,", font: "Times New Roman", spacing: { after: 800 } }),
+                        new Paragraph({ 
+                            children: [
+                                new TextRun({ text: amName, bold: true, size: 28, font: "Brush Script MT" }) // Trying to look like signature or just bold name
+                            ]
+                        }), 
+                        new Paragraph({ text: amName, bold: true, font: "Times New Roman" }),
+                        new Paragraph({ text: "Senior Account Manager", italics: true, font: "Times New Roman" }),
+                    ]
+                }]
+            });
+
+            const blob = await Packer.toBlob(doc);
+            window.saveAs(blob, `SPH_Telkom_${customerName.replace(/\s+/g, '_')}.docx`);
+        };
+
+        // --- Components ---
+
+        const FormattedNumberInput = ({ value, onChange, placeholder, className, style }) => {
+            // Format number with commas
+            const format = (val) => {
+                if (val === undefined || val === null || val === '') return '';
+                // Handle 0 explicitly if needed, but '0' -> '0' is fine.
+                // Convert to string and add commas
+                return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            };
+
+            const handleChange = (e) => {
+                // Remove commas and non-digits (except maybe dot if we supported decimals, but usually prices are integers here)
+                const raw = e.target.value.replace(/,/g, '');
+                
+                // Allow empty string to clear input
+                if (raw === '') {
+                    onChange('');
+                    return;
+                }
+
+                // Only allow digits
+                if (/^\d+$/.test(raw)) {
+                    onChange(parseInt(raw, 10)); // Store as number
+                }
+            };
+
+            return (
+                <input
+                    type="text"
+                    value={format(value)}
+                    onChange={handleChange}
+                    placeholder={placeholder}
+                    className={className}
+                    style={style}
+                />
+            );
+        };
+
+        const BandwidthSelector = ({ value, isCustom, onValueChange, onCustomChange, serviceType }) => {
+            const bwOptions = serviceType === 'SL WDM' ? SL_WDM_BANDWIDTH_OPTIONS : 
+                              (serviceType === 'VPN IP' ? VPN_IP_BANDWIDTH_OPTIONS : BANDWIDTH_OPTIONS);
+
+            const getUnit = (val, type) => {
+                const match = val.match(/(Kbps|Mbps|Gbps)/i);
+                if (match) return match[0];
+                if (type === 'SL WDM') return 'Gbps';
+                if (type === 'VPN IP') return 'Kbps';
+                return 'Mbps';
+            };
+
+            return (
+                <div className="flex gap-2" style={{flex:1}}>
+                    <select
+                        value={!isCustom && bwOptions.includes(value) ? value : 'Custom'}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'Custom') {
+                                onCustomChange(true);
+                            } else {
+                                onValueChange(val);
+                                onCustomChange(false);
+                            }
+                        }}
+                        className="form-control"
+                        style={{flex:1}}
+                    >
+                        {bwOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                        <option value="Custom">Custom</option>
+                    </select>
+                    {(isCustom || !bwOptions.includes(value)) && (
+                        <div className="flex gap-2" style={{flex:1}}>
+                            <input
+                                type="number"
+                                value={parseFloat(value) || ''}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    const unit = getUnit(value, serviceType);
+                                    onValueChange(val ? `${val} ${unit}` : '');
+                                }}
+                                className="form-control"
+                                placeholder="Nilai"
+                                style={{flex:1}}
+                            />
+                            <select
+                                value={getUnit(value, serviceType)}
+                                onChange={(e) => {
+                                    const unit = e.target.value;
+                                    const val = parseFloat(value) || 0;
+                                    onValueChange(`${val} ${unit}`);
+                                }}
+                                className="form-control"
+                                style={{width: '100px'}}
+                            >
+                                <option value="Kbps">Kbps</option>
+                                <option value="Mbps">Mbps</option>
+                                <option value="Gbps">Gbps</option>
+                            </select>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        function App() {
+            const [formData, setFormData] = useState({
+                amName: '',
+                customerName: '',
+                subscriptionDuration: '12 Bulan',
+            });
+
+            const [services, setServices] = useState([
+                {
+                    id: Date.now(),
+                    type: 'Astinet',
+                    bandwidth: '100 Mbps',
+                    location: '',
+                    sites: [],
+                    otc: 2500000,
+                    mrc: 1000000,
+                    remarks: '',
+                    isCustomBandwidth: false,
+                    bandwidthGlobal: '',
+                    bandwidthDomestik: '',
+                    isCustomBandwidthGlobal: false,
+                    isCustomBandwidthDomestik: false
+                }
+            ]);
+
+            const handleInputChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+            };
+
+            const addService = () => {
+                setServices(prev => [
+                    ...prev,
+                    {
+                        id: Date.now() + Math.random(),
+                        type: 'Astinet',
+                        bandwidth: '100 Mbps',
+                        location: '',
+                        sites: [],
+                        otc: 0,
+                        mrc: 0,
+                        remarks: '',
+                        isCustomBandwidth: false,
+                        jumlahNomor: 3,
+                        concurrentCall: 3,
+                        ipAddress: 1,
+                        sipTrunkType: 'Standard',
+                        bandwidthGlobal: '',
+                        bandwidthDomestik: '',
+                        isCustomBandwidthGlobal: false,
+                        isCustomBandwidthDomestik: false
+                    }
+                ]);
+            };
+
+            const removeService = (id) => {
+                setServices(prev => prev.filter(s => s.id !== id));
+            };
+
+            const updateService = (id, field, value) => {
+                setServices(prev => prev.map(s => {
+                    if (s.id === id) {
+                        const updated = { ...s, [field]: value };
+                        
+                        // Logic for Astinet & Astinet Lite & Astinet Fit Auto-Pricing
+                        if (['Astinet', 'Astinet Lite', 'Astinet Fit'].includes(updated.type)) {
+                            if (field === 'bandwidth' || field === 'location') {
+                                const bwVal = parseBandwidth(updated.bandwidth);
+                                let pricingTable = null;
+                                if (updated.type === 'Astinet') pricingTable = ASTINET_PRICING;
+                                else if (updated.type === 'Astinet Lite') pricingTable = ASTINET_LITE_PRICING;
+                                else if (updated.type === 'Astinet Fit') pricingTable = ASTINET_FIT_PRICING;
+
+                                if (bwVal > 0 && updated.location && pricingTable) {
+                                    const price = calculateInterpolatedPrice(bwVal, updated.location, pricingTable);
+                                    if (price !== null) {
+                                        updated.mrc = Math.round(price);
+                                    } else {
+                                        updated.mrc = '';
+                                    }
+                                } else if (field === 'location' && value === '') {
+                                    updated.mrc = '';
+                                }
+                            }
+                        }
+
+                        // Logic for Astinet Beda Bandwidth Auto-Pricing
+                        if (updated.type === 'Astinet Beda Bandwidth') {
+                             if (['bandwidthGlobal', 'bandwidthDomestik', 'location'].includes(field)) {
+                                 const bwGlobal = parseBandwidth(updated.bandwidthGlobal);
+                                 const bwDomestik = parseBandwidth(updated.bandwidthDomestik);
+                                 
+                                 if (updated.location) {
+                                     const priceGlobal = calculateInterpolatedPrice(bwGlobal, updated.location, ASTINET_BB_GLOBAL_PRICING);
+                                     const priceDomestik = calculateInterpolatedPrice(bwDomestik, updated.location, ASTINET_BB_DOMESTIK_PRICING);
+                                     
+                                     if (priceGlobal !== null && priceDomestik !== null) {
+                                         updated.mrc = Math.round(priceGlobal + priceDomestik);
+                                     } else {
+                                         updated.mrc = '';
+                                     }
+                                 }
+                                 
+                                 // Update main bandwidth string for DOCX
+                                 if (updated.bandwidthGlobal || updated.bandwidthDomestik) {
+                                     updated.bandwidth = `Global: ${updated.bandwidthGlobal || '-'} | Domestik: ${updated.bandwidthDomestik || '-'}`;
+                                 }
+                             }
+                        }
+
+                        // Logic for SIP Trunk Auto-Pricing
+                        if (updated.type === 'SIP Trunk') {
+                             if (['jumlahNomor', 'concurrentCall', 'ipAddress', 'sipTrunkType'].includes(field)) {
+                                 const cc = parseInt(updated.concurrentCall) || 0;
+                                 const num = parseInt(updated.jumlahNomor) || 0;
+                                 const ip = parseInt(updated.ipAddress) || 0;
+                                 const type = updated.sipTrunkType || 'Standard';
+                                 
+                                 let otc = 0;
+                                 let mrc = 0;
+                                 
+                                 // 1. CC OTC
+                                 if (cc >= 3 && cc <= 50) otc += 3000000;
+                                 else if (cc <= 600) otc += 5000000;
+                                 else if (cc <= 1000) otc += 6500000;
+                                 
+                                 // 2. Number OTC
+                                 const otcNum = SIPTRUNK_OTC_NUMBER.find(r => num <= r.max);
+                                 if (otcNum) otc += otcNum.price;
+                                 
+                                 // 3. IP OTC
+                                 if (ip >= 2 && ip <= 5) otc += 500000;
+                                 else if (ip >= 6 && ip <= 12) otc += 1000000;
+                                 
+                                 // 4. CC MRC
+                                 // Find exact match or next higher
+                                 const ccKeys = Object.keys(SIPTRUNK_MRC_CC).map(Number).sort((a,b) => a-b);
+                                 const matchedCC = ccKeys.find(k => k >= cc);
+                                 if (matchedCC) {
+                                     const priceObj = SIPTRUNK_MRC_CC[matchedCC];
+                                     mrc += (type === 'HA' ? priceObj.ha : priceObj.standard);
+                                 }
+                                 
+                                 // 5. Number MRC
+                                 const mrcNum = SIPTRUNK_MRC_NUMBER.find(r => num <= r.max);
+                                 if (mrcNum) mrc += mrcNum.price;
+                                 
+                                 // 6. IP MRC
+                                 if (ip >= 2 && ip <= 5) mrc += 500000;
+                                 else if (ip >= 6 && ip <= 12) mrc += 1200000;
+                                 
+                                 updated.otc = otc;
+                                 updated.mrc = mrc;
+                             }
+                        }
+
+                        if (field === 'type') {
+                             // Reset price if type changes, as tables might differ (or user switches to non-priced service)
+                             // But also re-calculate if switching between Astinet variants
+                             if (['Astinet', 'Astinet Lite', 'Astinet Fit'].includes(value)) {
+                                  const bwVal = parseBandwidth(updated.bandwidth);
+                                  let pricingTable = null;
+                                  if (value === 'Astinet') pricingTable = ASTINET_PRICING;
+                                  else if (value === 'Astinet Lite') pricingTable = ASTINET_LITE_PRICING;
+                                  else if (value === 'Astinet Fit') pricingTable = ASTINET_FIT_PRICING;
+ 
+                                  if (bwVal > 0 && updated.location && pricingTable) {
+                                      const price = calculateInterpolatedPrice(bwVal, updated.location, pricingTable);
+                                      if (price !== null) {
+                                         updated.mrc = Math.round(price);
+                                      } else {
+                                          updated.mrc = '';
+                                      }
+                                  }
+                             } else if (value === 'Astinet Beda Bandwidth') {
+                                 // Reset or recalculate if already has global/domestik
+                                 const bwGlobal = parseBandwidth(updated.bandwidthGlobal);
+                                 const bwDomestik = parseBandwidth(updated.bandwidthDomestik);
+                                 
+                                 if (updated.location && bwGlobal > 0 && bwDomestik > 0) {
+                                     const priceGlobal = calculateInterpolatedPrice(bwGlobal, updated.location, ASTINET_BB_GLOBAL_PRICING);
+                                     const priceDomestik = calculateInterpolatedPrice(bwDomestik, updated.location, ASTINET_BB_DOMESTIK_PRICING);
+                                     
+                                     if (priceGlobal !== null && priceDomestik !== null) {
+                                         updated.mrc = Math.round(priceGlobal + priceDomestik);
+                                     } else {
+                                         updated.mrc = '';
+                                     }
+                                 } else {
+                                     updated.mrc = '';
+                                 }
+                                 
+                                 if (updated.bandwidthGlobal || updated.bandwidthDomestik) {
+                                     updated.bandwidth = `Global: ${updated.bandwidthGlobal || '-'} | Domestik: ${updated.bandwidthDomestik || '-'}`;
+                                 }
+                             } else if (value === 'SIP Trunk') {
+                                 const cc = parseInt(updated.concurrentCall) || 3;
+                                 const num = parseInt(updated.jumlahNomor) || 3;
+                                 const ip = parseInt(updated.ipAddress) || 1;
+                                 const type = updated.sipTrunkType || 'Standard';
+                                 
+                                 let otc = 0;
+                                 let mrc = 0;
+                                 
+                                 // 1. CC OTC
+                                 if (cc >= 3 && cc <= 50) otc += 3000000;
+                                 else if (cc <= 600) otc += 5000000;
+                                 else if (cc <= 1000) otc += 6500000;
+                                 
+                                 // 2. Number OTC
+                                 const otcNum = SIPTRUNK_OTC_NUMBER.find(r => num <= r.max);
+                                 if (otcNum) otc += otcNum.price;
+                                 
+                                 // 3. IP OTC
+                                 if (ip >= 2 && ip <= 5) otc += 500000;
+                                 else if (ip >= 6 && ip <= 12) otc += 1000000;
+                                 
+                                 // 4. CC MRC
+                                 const ccKeys = Object.keys(SIPTRUNK_MRC_CC).map(Number).sort((a,b) => a-b);
+                                 const matchedCC = ccKeys.find(k => k >= cc);
+                                 if (matchedCC) {
+                                     const priceObj = SIPTRUNK_MRC_CC[matchedCC];
+                                     mrc += (type === 'HA' ? priceObj.ha : priceObj.standard);
+                                 }
+                                 
+                                 // 5. Number MRC
+                                 const mrcNum = SIPTRUNK_MRC_NUMBER.find(r => num <= r.max);
+                                 if (mrcNum) mrc += mrcNum.price;
+                                 
+                                 // 6. IP MRC
+                                 if (ip >= 2 && ip <= 5) mrc += 500000;
+                                 else if (ip >= 6 && ip <= 12) mrc += 1200000;
+                                 
+                                 updated.otc = otc;
+                                 updated.mrc = mrc;
+                             } else {
+                                 // Switching to service without auto-pricing logic currently implemented (like Metro, etc)
+                                 // Maybe keep existing or reset? Let's keep existing to be safe, or maybe reset if desired.
+                                 // But let's leave it alone for now, user can edit.
+                             }
+                        }
+
+                        if (field === 'type' && value !== 'Metro Ethernet') {
+                           updated.sites = [];
+                        } else if (field === 'type' && value === 'Metro Ethernet' && updated.sites.length === 0) {
+                            // Pre-fill 2 sites for convenience
+                            updated.sites = [
+                                { name: 'Site A', bandwidth: '10 Mbps', isCustomBandwidth: false }, 
+                                { name: 'Site B', bandwidth: '10 Mbps', isCustomBandwidth: false }
+                            ];
+                        }
+                        return updated;
+                    }
+                    return s;
+                }));
+            };
+
+            const addSiteToService = (serviceId) => {
+                setServices(prev => prev.map(s => {
+                    if (s.id === serviceId) {
+                        return { ...s, sites: [...s.sites, { name: '', bandwidth: '10 Mbps', isCustomBandwidth: false }] };
+                    }
+                    return s;
+                }));
+            };
+
+            const updateSite = (serviceId, siteIndex, field, value) => {
+                setServices(prev => prev.map(s => {
+                    if (s.id === serviceId) {
+                        const newSites = [...s.sites];
+                        newSites[siteIndex] = { ...newSites[siteIndex], [field]: value };
+                        return { ...s, sites: newSites };
+                    }
+                    return s;
+                }));
+            };
+
+            const removeSite = (serviceId, siteIndex) => {
+                setServices(prev => prev.map(s => {
+                    if (s.id === serviceId) {
+                        const newSites = s.sites.filter((_, i) => i !== siteIndex);
+                        return { ...s, sites: newSites };
+                    }
+                    return s;
+                }));
+            };
+
+            return (
+                <div className="container my-10">
+                    <div className="header">
+                        <div className="flex items-center gap-3">
+                            <IconFileText />
+                            <h1>SPH Generator Telkom</h1>
+                        </div>
+                    </div>
+
+                    <div className="content">
+                        {/* Global Info */}
+                        <div className="section-title">Informasi Pelanggan</div>
+                        <div className="grid-3">
+                            <div className="form-group">
+                                <label>Nama AM (Account Manager)</label>
+                                <input
+                                    type="text"
+                                    name="amName"
+                                    value={formData.amName}
+                                    onChange={handleInputChange}
+                                    className="form-control"
+                                    placeholder="Ex: Dwi Iriani"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Nama Pelanggan</label>
+                                <input
+                                    type="text"
+                                    name="customerName"
+                                    value={formData.customerName}
+                                    onChange={handleInputChange}
+                                    className="form-control"
+                                    placeholder="Ex: PT Maju Bersama Sejahtera"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Lama Berlangganan</label>
+                                <div className="flex gap-2">
+                                    <select
+                                        value={DURATION_OPTIONS.includes(formData.subscriptionDuration) ? formData.subscriptionDuration : 'Custom'}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setFormData(prev => ({ 
+                                                ...prev, 
+                                                subscriptionDuration: val === 'Custom' ? '' : val 
+                                            }));
+                                        }}
+                                        className="form-control"
+                                        style={{flex:1}}
+                                    >
+                                        {DURATION_OPTIONS.map(opt => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                        <option value="Custom">Custom</option>
+                                    </select>
+                                    {(!DURATION_OPTIONS.includes(formData.subscriptionDuration)) && (
+                                        <input
+                                            type="text"
+                                            name="subscriptionDuration"
+                                            value={formData.subscriptionDuration}
+                                            onChange={handleInputChange}
+                                            className="form-control"
+                                            placeholder="Ex: 6 Bulan"
+                                            style={{flex:1}}
+                                            autoFocus
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Services */}
+                        <div className="flex justify-between items-center mt-6 mb-4">
+                            <div className="section-title" style={{margin:0}}>Daftar Layanan</div>
+                            <div className="flex gap-2">
+                                <a href="kalk-ncix.html" target="_blank" className="btn" style={{backgroundColor: '#10b981', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center'}}>
+                                    <span className="mr-1"><IconFileText /></span> Kalkulator NeuCentrIX
+                                </a>
+                                <button onClick={addService} className="btn btn-primary">
+                                    <span className="mr-1"><IconPlus /></span> Tambah Layanan
+                                </button>
+                            </div>
+                        </div>
+
+                        {services.map((service, index) => {
+                            const bwOptions = service.type === 'SL WDM' ? SL_WDM_BANDWIDTH_OPTIONS : 
+                                              (service.type === 'VPN IP' ? VPN_IP_BANDWIDTH_OPTIONS : BANDWIDTH_OPTIONS);
+                            
+                            const getUnit = (val, type) => {
+                                const match = val.match(/(Kbps|Mbps|Gbps)/i);
+                                if (match) return match[0];
+                                if (type === 'SL WDM') return 'Gbps';
+                                if (type === 'VPN IP') return 'Kbps';
+                                return 'Mbps';
+                            };
+
+                            return (
+                                <div key={service.id} className="service-card">
+                                <div className="flex justify-between items-start mb-4 border-b pb-2">
+                                    <h3 className="font-bold text-gray-700">Layanan #{index + 1}</h3>
+                                    {services.length > 1 && (
+                                        <button onClick={() => removeService(service.id)} className="text-red-500 hover:text-red-700">
+                                            <IconTrash />
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                <div className="grid-2 mb-4">
+                                    <div className="form-group">
+                                        <label>Jenis Layanan</label>
+                                        <select
+                                            value={service.type}
+                                            onChange={(e) => updateService(service.id, 'type', e.target.value)}
+                                            className="form-control"
+                                        >
+                                            {SERVICE_OPTIONS.map(opt => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    {service.type !== 'Metro Ethernet' && service.type !== 'SIP Trunk' && (
+                                    <div className="form-group">
+                                        <label>Bandwidth</label>
+                                        {service.type === 'Astinet Beda Bandwidth' ? (
+                                            <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                                                <div>
+                                                    <label style={{fontSize: '0.8em', color: '#666'}}>Bandwidth Global</label>
+                                                    <BandwidthSelector
+                                                        value={service.bandwidthGlobal}
+                                                        isCustom={service.isCustomBandwidthGlobal}
+                                                        onValueChange={(val) => updateService(service.id, 'bandwidthGlobal', val)}
+                                                        onCustomChange={(val) => updateService(service.id, 'isCustomBandwidthGlobal', val)}
+                                                        serviceType={service.type}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{fontSize: '0.8em', color: '#666'}}>Bandwidth Domestik</label>
+                                                    <BandwidthSelector
+                                                        value={service.bandwidthDomestik}
+                                                        isCustom={service.isCustomBandwidthDomestik}
+                                                        onValueChange={(val) => updateService(service.id, 'bandwidthDomestik', val)}
+                                                        onCustomChange={(val) => updateService(service.id, 'isCustomBandwidthDomestik', val)}
+                                                        serviceType={service.type}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <BandwidthSelector
+                                                value={service.bandwidth}
+                                                isCustom={service.isCustomBandwidth}
+                                                serviceType={service.type}
+                                                onValueChange={(val) => updateService(service.id, 'bandwidth', val)}
+                                                onCustomChange={(isCustom) => updateService(service.id, 'isCustomBandwidth', isCustom)}
+                                            />
+                                        )}
+                                    </div>
+                                    )}
+
+                                    {service.type === 'SIP Trunk' && (
+                                        <div className="grid-3" style={{gridColumn: '1 / -1'}}>
+                                            <div className="form-group">
+                                                <label>Tipe Trunk</label>
+                                                <select
+                                                    value={service.sipTrunkType || 'Standard'}
+                                                    onChange={(e) => updateService(service.id, 'sipTrunkType', e.target.value)}
+                                                    className="form-control"
+                                                >
+                                                    <option value="Standard">Standard</option>
+                                                    <option value="HA">High Availability (HA)</option>
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Jumlah Nomor (Min 3)</label>
+                                                <input
+                                                    type="number"
+                                                    min="3"
+                                                    max="10000"
+                                                    value={service.jumlahNomor || 3}
+                                                    onChange={(e) => updateService(service.id, 'jumlahNomor', e.target.value)}
+                                                    className="form-control"
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Concurrent Call (Min 3)</label>
+                                                <input
+                                                    type="number"
+                                                    min="3"
+                                                    max="10000"
+                                                    value={service.concurrentCall || 3}
+                                                    onChange={(e) => updateService(service.id, 'concurrentCall', e.target.value)}
+                                                    className="form-control"
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Jumlah IP Address (Max 12)</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="12"
+                                                    value={service.ipAddress || 1}
+                                                    onChange={(e) => updateService(service.id, 'ipAddress', e.target.value)}
+                                                    className="form-control"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {service.type === 'Metro Ethernet' ? (
+                                    <div className="bg-white p-4 rounded border border-gray-200 mb-4">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="text-sm font-bold text-gray-700">Sites (Metro Ethernet)</label>
+                                            <button onClick={() => addSiteToService(service.id)} className="text-blue-600 text-sm font-medium">+ Add Site</button>
+                                        </div>
+                                        {service.sites.map((site, sIdx) => (
+                                            <div key={sIdx} className="flex gap-2 mb-2 items-start">
+                                                <div style={{flex: 1}}>
+                                                    <input 
+                                                        type="text" 
+                                                        className="form-control mb-1"
+                                                        placeholder={`Nama Site ${sIdx + 1}`}
+                                                        value={site.name}
+                                                        onChange={(e) => updateSite(service.id, sIdx, 'name', e.target.value)}
+                                                    />
+                                                    <BandwidthSelector
+                                                        value={site.bandwidth}
+                                                        isCustom={site.isCustomBandwidth}
+                                                        serviceType={service.type}
+                                                        onValueChange={(val) => updateSite(service.id, sIdx, 'bandwidth', val)}
+                                                        onCustomChange={(isCustom) => updateSite(service.id, sIdx, 'isCustomBandwidth', isCustom)}
+                                                    />
+                                                </div>
+                                                <button onClick={() => removeSite(service.id, sIdx)} className="btn-danger-text mt-1">
+                                                    <IconX />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <div className="text-xs text-gray-500 mt-1">
+                                            Mode: {service.sites.length < 2 ? 'Invalid (Min 2)' : (service.sites.length === 2 ? 'P2P' : 'P2MP')}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="form-group">
+                                        <label>Lokasi</label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={LOCATION_OPTIONS.includes(service.location) ? service.location : (service.location ? 'Custom' : '')}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    updateService(service.id, 'location', val === 'Custom' ? '' : val);
+                                                }}
+                                                className="form-control"
+                                                style={{flex:1}}
+                                            >
+                                                <option value="" disabled>Pilih Lokasi</option>
+                                                {LOCATION_OPTIONS.map(opt => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                                <option value="Custom">Custom</option>
+                                            </select>
+                                            {(!LOCATION_OPTIONS.includes(service.location)) && (
+                                                <input
+                                                    type="text"
+                                                    value={service.location}
+                                                    onChange={(e) => updateService(service.id, 'location', e.target.value)}
+                                                    className="form-control"
+                                                    placeholder="Isi lokasi manual"
+                                                    style={{flex:1}}
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="grid-3">
+                                    <div className="form-group">
+                                        <label>Harga Aktivasi (OTC)</label>
+                                        <FormattedNumberInput
+                                            value={service.otc}
+                                            onChange={(val) => updateService(service.id, 'otc', val)}
+                                            className="form-control"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Harga Layanan (Bulanan)</label>
+                                        <FormattedNumberInput
+                                            value={service.mrc}
+                                            onChange={(val) => updateService(service.id, 'mrc', val)}
+                                            className="form-control"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Keterangan</label>
+                                        <input
+                                            type="text"
+                                            value={service.remarks}
+                                            onChange={(e) => updateService(service.id, 'remarks', e.target.value)}
+                                            className="form-control"
+                                            placeholder="Ex: Backhaul"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            );
+                        })}
+
+                        <div className="flex justify-end mt-8">
+                            <button onClick={() => generateSPH(formData, services)} className="btn btn-primary" style={{fontSize: '1.1rem', padding: '12px 24px'}}>
+                                <span className="mr-2"><IconDownload /></span> Download SPH (.docx)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
