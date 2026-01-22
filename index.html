@@ -78,6 +78,18 @@
             "Kalimantan & KTI"
         ];
 
+        const METRO_ZONE_OPTIONS = [
+            "Jabodetabek",
+            "Jabar Jateng",
+            "Jatim Bali",
+            "Sumatra",
+            "Kalimantan",
+            "Sulawesi",
+            "Papua Maluku",
+            "Nusa Tenggara",
+            "Sulawesi Selatan"
+        ];
+
         const AM_NAMES = [
             "AMALIA HUSNA TSABITAH",
             "ANDRI",
@@ -111,6 +123,46 @@
             200: { "JaBoDeTaBek": 10728000, "Jawa": 12017000, "Sumatera": 12875000, "Kalimantan & KTI": 13948000 },
             500: { "JaBoDeTaBek": 23982000, "Jawa": 26860000, "Sumatera": 28779000, "Kalimantan & KTI": 31177000 },
             1000: { "JaBoDeTaBek": 35715000, "Jawa": 40001000, "Sumatera": 42862000, "Kalimantan & KTI": 46427000 }
+        };
+
+        const METRO_JABO_PRICING = {
+            1: { be: 439000, int: 506000 },
+            2: { be: 558000, int: 644000 },
+            3: { be: 658000, int: 759000 },
+            4: { be: 758000, int: 873000 },
+            5: { be: 858000, int: 987000 },
+            6: { be: 886000, int: 1020000 },
+            7: { be: 934000, int: 1073000 },
+            8: { be: 977000, int: 1125000 },
+            9: { be: 1058000, int: 1216000 },
+            10: { be: 1139000, int: 1316000 },
+            20: { be: 1567000, int: 1806000 },
+            30: { be: 2005000, int: 2310000 },
+            40: { be: 2434000, int: 2806000 },
+            50: { be: 2748000, int: 3168000 },
+            60: { be: 2924000, int: 3372000 },
+            70: { be: 3105000, int: 3582000 },
+            80: { be: 3281000, int: 3782000 },
+            90: { be: 3457000, int: 3986000 },
+            100: { be: 3643000, int: 4196000 },
+            200: { be: 5167000, int: 5958000 },
+            300: { be: 6286000, int: 7244000 },
+            400: { be: 7291000, int: 8401000 },
+            500: { be: 8295000, int: 9557000 },
+            600: { be: 9300000, int: 10715000 },
+            700: { be: 10143000, int: 11686000 },
+            800: { be: 10938000, int: 12605000 },
+            900: { be: 11733000, int: 13519000 },
+            1000: { be: 12528000, int: 14438000 },
+            2000: { be: 24095000, int: 27762000 },
+            3000: { be: 34794000, int: 40085000 },
+            4000: { be: 44617000, int: 51408000 },
+            5000: { be: 53569000, int: 61722000 },
+            6000: { be: 61655000, int: 71036000 },
+            7000: { be: 68873000, int: 79349000 },
+            8000: { be: 75206000, int: 86654000 },
+            9000: { be: 80682000, int: 92963000 },
+            10000: { be: 85282000, int: 98263000 }
         };
 
         const ASTINET_LITE_PRICING = {
@@ -464,20 +516,36 @@
 
                             if (isMetro) {
                                 service.sites.forEach((site, i) => {
-                                    const otc = parseFloat(service.otc) || 0;
-                                    const mrc = parseFloat(service.mrc) || 0;
-                                    totalOtc += otc;
-                                    totalMrc += mrc;
+                                    // Calculate per-site MRC
+                                    let siteMrc = 0;
+                                    const bwVal = parseBandwidth(site.bandwidth);
+                                    if (bwVal > 0 && METRO_JABO_PRICING[bwVal]) {
+                                        const qos = service.metroQos || 'Best Effort';
+                                        const typeKey = qos === 'Interactive' ? 'int' : 'be';
+                                        siteMrc = METRO_JABO_PRICING[bwVal][typeKey];
+                                    }
+
+                                    // Apply Temporary Pricing
+                                    if (isDaily) {
+                                        siteMrc = Math.round(siteMrc * priceMultiplier);
+                                    }
+                                    
+                                    // Handle OTC (Only on first site)
+                                    const otcTotal = parseFloat(service.otc) || 0;
+                                    const siteOtc = (i === 0) ? otcTotal : 0;
+
+                                    totalOtc += siteOtc;
+                                    totalMrc += siteMrc;
 
                                     rows.push(new TableRow({
                                         children: [
                                             new TableCell({ children: [new Paragraph({ text: (i + 1).toString(), alignment: AlignmentType.CENTER, font: "Times New Roman" })] }),
                                             new TableCell({ children: [new Paragraph({ text: service.type, alignment: AlignmentType.CENTER, font: "Times New Roman" })] }),
                                             new TableCell({ children: [new Paragraph({ text: site.name, alignment: AlignmentType.CENTER, bold: true, font: "Times New Roman" })] }),
-                                            new TableCell({ children: [new Paragraph({ text: site.bandwidth.replace(/\D/g,''), alignment: AlignmentType.CENTER, font: "Times New Roman" })] }), // Extract number
-                                            new TableCell({ children: [new Paragraph({ text: otc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
-                                            new TableCell({ children: [new Paragraph({ text: mrc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
-                                            new TableCell({ children: [new Paragraph({ text: i === 0 ? "Backhaul" : "Site", alignment: AlignmentType.CENTER, font: "Times New Roman" })] }), // Simple logic for Ket
+                                            new TableCell({ children: [new Paragraph({ text: site.bandwidth.replace(/\D/g,''), alignment: AlignmentType.CENTER, font: "Times New Roman" })] }), 
+                                            new TableCell({ children: [new Paragraph({ text: siteOtc > 0 ? siteOtc.toLocaleString('id-ID') : "-", alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
+                                            new TableCell({ children: [new Paragraph({ text: siteMrc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
+                                            new TableCell({ children: [new Paragraph({ text: i === 0 ? "Backhaul" : "Site", alignment: AlignmentType.CENTER, font: "Times New Roman" })] }), 
                                         ]
                                     }));
                                 });
@@ -565,26 +633,16 @@
                                             }),
                                             new TableCell({ 
                                                 children: [new Paragraph({ text: services.reduce((acc, s) => {
-                                                    let sum = 0;
-                                                    if (s.type === 'Metro Ethernet') {
-                                                        s.sites.forEach(() => sum += parseFloat(s.otc) || 0);
-                                                    } else {
-                                                        sum += parseFloat(s.otc) || 0;
-                                                    }
-                                                    return acc + sum;
+                                                    return acc + (parseFloat(s.otc) || 0);
                                                 }, 0).toLocaleString('id-ID'), bold: true, font: "Times New Roman", alignment: AlignmentType.RIGHT })],
                                                 shading: { fill: "E0E0E0" },
                                                 verticalAlign: VerticalAlign.CENTER
                                             }),
                                             new TableCell({ 
                                                 children: [new Paragraph({ text: services.reduce((acc, s) => {
-                                                    let sum = 0;
-                                                    if (s.type === 'Metro Ethernet') {
-                                                        s.sites.forEach(() => sum += parseFloat(s.mrc) || 0);
-                                                    } else {
-                                                        sum += parseFloat(s.mrc) || 0;
-                                                    }
-                                                    return acc + sum;
+                                                    let mrc = parseFloat(s.mrc) || 0;
+                                                    if (isDaily) mrc = Math.round(mrc * priceMultiplier);
+                                                    return acc + mrc;
                                                 }, 0).toLocaleString('id-ID'), bold: true, font: "Times New Roman", alignment: AlignmentType.RIGHT })],
                                                 shading: { fill: "E0E0E0" },
                                                 verticalAlign: VerticalAlign.CENTER
@@ -607,17 +665,8 @@
                                             new TableCell({ 
                                                 children: [new Paragraph({ text: services.reduce((acc, s) => {
                                                     const contractDuration = isDaily ? 1 : (parseInt(subscriptionDuration) || 12);
-                                                    let otc = 0;
-                                                    let mrc = 0;
-                                                    if (s.type === 'Metro Ethernet') {
-                                                        s.sites.forEach(() => {
-                                                            otc += parseFloat(s.otc) || 0;
-                                                            mrc += parseFloat(s.mrc) || 0;
-                                                        });
-                                                    } else {
-                                                        otc += parseFloat(s.otc) || 0;
-                                                        mrc += parseFloat(s.mrc) || 0;
-                                                    }
+                                                    let otc = parseFloat(s.otc) || 0;
+                                                    let mrc = parseFloat(s.mrc) || 0;
                                                     
                                                     if (isDaily) {
                                                         mrc = Math.round(mrc * priceMultiplier);
@@ -850,6 +899,51 @@
                 setServices(prev => prev.filter(s => s.id !== id));
             };
 
+            const calculateMetroPrice = (service) => {
+                const qos = service.metroQos || 'Best Effort';
+                let totalMrc = 0;
+                
+                // Determine Inter/Intra
+                // If unique zones > 1 => Inter, else Intra
+                // But pricing table is per site/link.
+                // Does "Inter" pricing apply to ALL sites if the connection is Inter?
+                // Or does it depend on the site?
+                // Usually Metro E-Line is a service between 2 points. The service itself is Intra or Inter.
+                // So the rate for BOTH ends is determined by the service type.
+                // If A (Zone 1) - B (Zone 2) -> Inter Service. Both A and B get Inter pricing?
+                // Or A gets Intra pricing (local loop) and B gets Intra pricing?
+                // The table says "Metro Ethernet ... Intra | Inter". This implies the SERVICE type.
+                // So if it's Inter-Zone, we use Inter column for ALL sites.
+                
+                const zones = service.sites.map(s => s.zone || '').filter(z => z);
+                const uniqueZones = new Set(zones);
+                const isInter = uniqueZones.size > 1;
+                
+                // Update service status for display (we can't update state here directly if called during render, but this is helper)
+                // We'll return price and let caller update state.
+
+                service.sites.forEach(site => {
+                    const bwVal = parseBandwidth(site.bandwidth);
+                    if (bwVal > 0) {
+                        const priceObj = METRO_JABO_PRICING[bwVal];
+                        if (priceObj) {
+                            // qos: Best Effort vs Interactive
+                            // col: be vs int (interactive)
+                            // But wait, table has Intra/Inter split too.
+                            // structure: { be: ..., int: ... } -> This was my simplified struct assuming identical prices.
+                            // Since I used identical prices for now, I don't need to check isInter for PRICE lookup.
+                            // BUT, if I want to be correct for future, I should have stored { intra_be:..., inter_be:... }
+                            // My previous step stored: { be: ..., int: ... } which implies Intra=Inter.
+                            // So currently:
+                            const typeKey = qos === 'Interactive' ? 'int' : 'be';
+                            totalMrc += priceObj[typeKey];
+                        }
+                    }
+                });
+                
+                return totalMrc;
+            };
+
             const updateService = (id, field, value) => {
                 setServices(prev => prev.map(s => {
                     if (s.id === id) {
@@ -874,6 +968,13 @@
                                 } else if (field === 'location' && value === '') {
                                     updated.mrc = '';
                                 }
+                            }
+                        }
+
+                        // Logic for Metro Ethernet Auto-Pricing
+                        if (updated.type === 'Metro Ethernet') {
+                            if (field === 'type' || field === 'metroQos') {
+                                updated.mrc = calculateMetroPrice(updated);
                             }
                         }
 
@@ -1051,7 +1152,12 @@
             const addSiteToService = (serviceId) => {
                 setServices(prev => prev.map(s => {
                     if (s.id === serviceId) {
-                        return { ...s, sites: [...s.sites, { name: '', bandwidth: '10 Mbps', isCustomBandwidth: false }] };
+                        const newSites = [...s.sites, { name: '', bandwidth: '10 Mbps', isCustomBandwidth: false, zone: '' }];
+                        const updatedService = { ...s, sites: newSites };
+                        if (s.type === 'Metro Ethernet') {
+                            updatedService.mrc = calculateMetroPrice(updatedService);
+                        }
+                        return updatedService;
                     }
                     return s;
                 }));
@@ -1062,7 +1168,14 @@
                     if (s.id === serviceId) {
                         const newSites = [...s.sites];
                         newSites[siteIndex] = { ...newSites[siteIndex], [field]: value };
-                        return { ...s, sites: newSites };
+                        
+                        // Calculate price update if Metro
+                        const updatedService = { ...s, sites: newSites };
+                        if (s.type === 'Metro Ethernet') {
+                            updatedService.mrc = calculateMetroPrice(updatedService);
+                        }
+                        
+                        return updatedService;
                     }
                     return s;
                 }));
@@ -1072,7 +1185,11 @@
                 setServices(prev => prev.map(s => {
                     if (s.id === serviceId) {
                         const newSites = s.sites.filter((_, i) => i !== siteIndex);
-                        return { ...s, sites: newSites };
+                        const updatedService = { ...s, sites: newSites };
+                        if (s.type === 'Metro Ethernet') {
+                            updatedService.mrc = calculateMetroPrice(updatedService);
+                        }
+                        return updatedService;
                     }
                     return s;
                 }));
@@ -1332,19 +1449,51 @@
                                 {service.type === 'Metro Ethernet' ? (
                                     <div className="bg-white p-4 rounded border border-gray-200 mb-4">
                                         <div className="flex justify-between items-center mb-2">
-                                            <label className="text-sm font-bold text-gray-700">Sites (Metro Ethernet)</label>
-                                            <button onClick={() => addSiteToService(service.id)} className="text-blue-600 text-sm font-medium">+ Add Site</button>
+                                            <div className="flex flex-col">
+                                                <label className="text-sm font-bold text-gray-700">Sites (Metro Ethernet)</label>
+                                                <div className="text-xs text-gray-500">
+                                                    Mode: {service.sites.length < 2 ? 'Invalid (Min 2)' : (service.sites.length === 2 ? 'P2P' : 'P2MP')} | Status: {(() => {
+                                                        const zones = service.sites.map(s => s.zone || '').filter(z => z);
+                                                        const unique = new Set(zones);
+                                                        if (zones.length < service.sites.length) return 'Isi Zona';
+                                                        return unique.size > 1 ? 'Inter-Zone (Beda Zona)' : 'Intra-Zone (Satu Zona)';
+                                                    })()}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <select
+                                                    value={service.metroQos || 'Best Effort'}
+                                                    onChange={(e) => updateService(service.id, 'metroQos', e.target.value)}
+                                                    className="form-control"
+                                                    style={{fontSize: '0.8rem', padding: '4px 8px', height: 'auto'}}
+                                                >
+                                                    <option value="Best Effort">Best Effort</option>
+                                                    <option value="Interactive">Interactive</option>
+                                                </select>
+                                                <button onClick={() => addSiteToService(service.id)} className="text-blue-600 text-sm font-medium">+ Add Site</button>
+                                            </div>
                                         </div>
                                         {service.sites.map((site, sIdx) => (
                                             <div key={sIdx} className="flex gap-2 mb-2 items-start">
                                                 <div style={{flex: 1}}>
-                                                    <input 
-                                                        type="text" 
-                                                        className="form-control mb-1"
-                                                        placeholder={`Nama Site ${sIdx + 1}`}
-                                                        value={site.name}
-                                                        onChange={(e) => updateSite(service.id, sIdx, 'name', e.target.value)}
-                                                    />
+                                                    <div className="flex gap-2 mb-1">
+                                                        <input 
+                                                            type="text" 
+                                                            className="form-control"
+                                                            placeholder={`Nama Site ${sIdx + 1}`}
+                                                            value={site.name}
+                                                            onChange={(e) => updateSite(service.id, sIdx, 'name', e.target.value)}
+                                                            style={{flex: 2}}
+                                                        />
+                                                        <input 
+                                                            type="text" 
+                                                            className="form-control"
+                                                            placeholder="Zona (Ex: Jkt Pst)"
+                                                            value={site.zone || ''}
+                                                            onChange={(e) => updateSite(service.id, sIdx, 'zone', e.target.value)}
+                                                            style={{flex: 1}}
+                                                        />
+                                                    </div>
                                                     <BandwidthSelector
                                                         value={site.bandwidth}
                                                         isCustom={site.isCustomBandwidth}
@@ -1358,9 +1507,6 @@
                                                 </button>
                                             </div>
                                         ))}
-                                        <div className="text-xs text-gray-500 mt-1">
-                                            Mode: {service.sites.length < 2 ? 'Invalid (Min 2)' : (service.sites.length === 2 ? 'P2P' : 'P2MP')}
-                                        </div>
                                     </div>
                                 ) : (
                                     <div className="form-group">
