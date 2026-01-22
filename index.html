@@ -1485,14 +1485,17 @@
                                                             onChange={(e) => updateSite(service.id, sIdx, 'name', e.target.value)}
                                                             style={{flex: 2}}
                                                         />
-                                                        <input 
-                                                            type="text" 
+                                                        <select 
                                                             className="form-control"
-                                                            placeholder="Zona (Ex: Jkt Pst)"
                                                             value={site.zone || ''}
                                                             onChange={(e) => updateSite(service.id, sIdx, 'zone', e.target.value)}
                                                             style={{flex: 1}}
-                                                        />
+                                                        >
+                                                            <option value="" disabled>Pilih Zona</option>
+                                                            {METRO_ZONE_OPTIONS.map(opt => (
+                                                                <option key={opt} value={opt}>{opt}</option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                     <BandwidthSelector
                                                         value={site.bandwidth}
