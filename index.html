@@ -1005,13 +1005,37 @@
                 localLoopTerm = "Harga Layanan bulanan Metro Ethernet di atas BELUM termasuk biaya Local Loop sebesar Rp 950,000 per KM (apabila di atas 5 km dari site POP Telkom terdekat lokasi pelanggan)";
             }
 
+            // --- SLG Logic ---
+            const slgItems = [];
+            // Check for Metro sites that are NOT Neucentrix (Standard Metro)
+            const hasMetroE = services.some(s => 
+                s.type === 'Metro Ethernet' && (!s.sites || s.sites.some(site => !site.isNeucentrix))
+            );
+            const hasIpTransit = services.some(s => s.type.includes('IP Transit'));
+            // Check for Metro sites with isNeucentrix
+            const hasNeucentrix = services.some(s => 
+                (s.type === 'Metro Ethernet' && s.sites && s.sites.some(site => site.isNeucentrix))
+            );
+            const hasAstinetAll = services.some(s => s.type.toLowerCase().includes('astinet'));
+            const hasSipTrunk = services.some(s => s.type === 'SIP Trunk');
+
+            if (hasMetroE) slgItems.push("Metro E : 99.5%");
+            if (hasIpTransit) slgItems.push("IP Transit : 99.5%");
+            if (hasNeucentrix) slgItems.push("Neucentrix: 99.74%");
+            if (hasAstinetAll) slgItems.push("Astinet (all) : 95%");
+            if (hasSipTrunk) slgItems.push("SIPTrunk : 95%");
+
             const termsList = [
                 ...(localLoopTerm ? [localLoopTerm] : []),
                 "Seluruh Biaya belum termasuk PPN (11%).",
                 "End Delivery berupa modem yang disediakan Telkom dengan interface port LAN-Ethernet.",
                 "Kabel LAN Ethernet, perangkat router, mikrotik, access point, catuan listrik, Instalasi Kabel Gedung (IKG) dan CPE lainnya merupakan tanggungan Pelanggan.",
                 `Masa berlaku penawaran 20 hari sejak tanggal surat ini. (Lama berlangganan: ${subscriptionDuration})`,
-                "Penawaran bersifat terbatas/rahasia tidak diperkenankan disebarluaskan."
+                "Penawaran bersifat terbatas/rahasia tidak diperkenankan disebarluaskan.",
+                ...(slgItems.length > 0 ? [{
+                    title: "Service Level Guarantee Availability:",
+                    items: slgItems
+                }] : [])
             ];
             // -----------------------------
 
@@ -1342,14 +1366,37 @@
                             font: "Aptos Narrow",
                             size: 20
                         }),
-                        ...termsList.map((term, i) => new Paragraph({
-                            text: `${i + 1}. ${term}`,
-                            italics: true,
-                            font: "Aptos Narrow",
-                            size: 20,
-                            spacing: { after: 50 },
-                            indent: { left: 720, hanging: 360 } // Indentation
-                        })),
+                        ...termsList.flatMap((term, i) => {
+                            if (typeof term === 'string') {
+                                return [new Paragraph({
+                                    text: `${i + 1}. ${term}`,
+                                    italics: true,
+                                    font: "Aptos Narrow",
+                                    size: 20,
+                                    spacing: { after: 50 },
+                                    indent: { left: 720, hanging: 360 } // Indentation
+                                })];
+                            } else {
+                                return [
+                                    new Paragraph({
+                                        text: `${i + 1}. ${term.title}`,
+                                        italics: true,
+                                        font: "Aptos Narrow",
+                                        size: 20,
+                                        spacing: { after: 50 },
+                                        indent: { left: 720, hanging: 360 }
+                                    }),
+                                    ...term.items.map((sub, j) => new Paragraph({
+                                        text: `${String.fromCharCode(97 + j)}. ${sub}`,
+                                        italics: true,
+                                        font: "Aptos Narrow",
+                                        size: 20,
+                                        spacing: { after: 50 },
+                                        indent: { left: 1440, hanging: 360 } // Double indentation
+                                    }))
+                                ];
+                            }
+                        }),
 
                         // Closing
                         new Paragraph({
