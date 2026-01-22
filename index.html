@@ -181,6 +181,166 @@
             10000: { be: 85282000, int: 98263000 }
         };
 
+        const METRO_JABAR_JATENG_PRICING = {
+            1: { intra: { be: 517000, int: 615000 }, inter: { be: 903000, int: 1094000 } },
+            2: { intra: { be: 657000, int: 783000 }, inter: { be: 1148000, int: 1392000 } },
+            3: { intra: { be: 775000, int: 922000 }, inter: { be: 1354000, int: 1641000 } },
+            4: { intra: { be: 893000, int: 1061000 }, inter: { be: 1560000, int: 1887000 } },
+            5: { intra: { be: 1011000, int: 1199000 }, inter: { be: 1765000, int: 2134000 } },
+            6: { intra: { be: 1044000, int: 1239000 }, inter: { be: 1823000, int: 2205000 } },
+            7: { intra: { be: 1100000, int: 1303000 }, inter: { be: 1922000, int: 2319000 } },
+            8: { intra: { be: 1151000, int: 1367000 }, inter: { be: 2010000, int: 2432000 } },
+            9: { intra: { be: 1246000, int: 1477000 }, inter: { be: 2177000, int: 2628000 } },
+            10: { intra: { be: 1342000, int: 1599000 }, inter: { be: 2343000, int: 2845000 } },
+            20: { intra: { be: 1845000, int: 2194000 }, inter: { be: 3224000, int: 3904000 } },
+            30: { intra: { be: 2361000, int: 2806000 }, inter: { be: 4125000, int: 4993000 } },
+            40: { intra: { be: 2866000, int: 3408000 }, inter: { be: 5007000, int: 6065000 } },
+            50: { intra: { be: 3236000, int: 3848000 }, inter: { be: 5653000, int: 6847000 } },
+            60: { intra: { be: 3443000, int: 4095000 }, inter: { be: 6015000, int: 7288000 } },
+            70: { intra: { be: 3656000, int: 4350000 }, inter: { be: 6387000, int: 7742000 } },
+            80: { intra: { be: 3864000, int: 4593000 }, inter: { be: 6749000, int: 8174000 } },
+            90: { intra: { be: 4071000, int: 4841000 }, inter: { be: 7111000, int: 8615000 } },
+            100: { intra: { be: 4290000, int: 5096000 }, inter: { be: 7494000, int: 9069000 } },
+            200: { intra: { be: 6084000, int: 7236000 }, inter: { be: 10628000, int: 12877000 } },
+            300: { intra: { be: 7402000, int: 8797000 }, inter: { be: 12930000, int: 15656000 } },
+            400: { intra: { be: 8585000, int: 10202000 }, inter: { be: 14997000, int: 18156000 } },
+            500: { intra: { be: 9767000, int: 11606000 }, inter: { be: 17062000, int: 20655000 } },
+            600: { intra: { be: 10950000, int: 13012000 }, inter: { be: 19130000, int: 23157000 } },
+            700: { intra: { be: 11943000, int: 14191000 }, inter: { be: 20864000, int: 25256000 } },
+            800: { intra: { be: 12879000, int: 15307000 }, inter: { be: 22499000, int: 27242000 } },
+            900: { intra: { be: 13815000, int: 16417000 }, inter: { be: 24134000, int: 29217000 } },
+            1000: { intra: { be: 14751000, int: 17533000 }, inter: { be: 25769000, int: 31203000 } },
+            2000: { intra: { be: 28370000, int: 33713000 }, inter: { be: 49561000, int: 59998000 } },
+            3000: { intra: { be: 40967000, int: 48678000 }, inter: { be: 71568000, int: 86630000 } },
+            4000: { intra: { be: 52533000, int: 62428000 }, inter: { be: 91773000, int: 111100000 } },
+            5000: { intra: { be: 63073000, int: 74953000 }, inter: { be: 110186000, int: 133390000 } },
+            6000: { intra: { be: 72594000, int: 86263000 }, inter: { be: 126818000, int: 153519000 } },
+            7000: { intra: { be: 81092000, int: 96358000 }, inter: { be: 141665000, int: 171485000 } },
+            8000: { intra: { be: 88549000, int: 105229000 }, inter: { be: 154691000, int: 187272000 } },
+            9000: { intra: { be: 94996000, int: 112890000 }, inter: { be: 165955000, int: 200906000 } },
+            10000: { intra: { be: 100412000, int: 119326000 }, inter: { be: 175416000, int: 212361000 } }
+        };
+
+        const METRO_SUMATRA_PRICING = {
+            1: { intra: { be: 584000, int: 698000 }, inter: { be: 1078000, int: 1304000 } },
+            2: { intra: { be: 742000, int: 888000 }, inter: { be: 1371000, int: 1660000 } },
+            3: { intra: { be: 875000, int: 1047000 }, inter: { be: 1616000, int: 1956000 } },
+            4: { intra: { be: 1008000, int: 1204000 }, inter: { be: 1862000, int: 2250000 } },
+            5: { intra: { be: 1141000, int: 1361000 }, inter: { be: 2107000, int: 2544000 } },
+            6: { intra: { be: 1178000, int: 1407000 }, inter: { be: 2176000, int: 2629000 } },
+            7: { intra: { be: 1242000, int: 1480000 }, inter: { be: 2294000, int: 2765000 } },
+            8: { intra: { be: 1299000, int: 1551000 }, inter: { be: 2400000, int: 2899000 } },
+            9: { intra: { be: 1407000, int: 1677000 }, inter: { be: 2598000, int: 3134000 } },
+            10: { intra: { be: 1514000, int: 1815000 }, inter: { be: 2797000, int: 3392000 } },
+            20: { intra: { be: 2083000, int: 2490000 }, inter: { be: 3848000, int: 4654000 } },
+            30: { intra: { be: 2665000, int: 3185000 }, inter: { be: 4924000, int: 5953000 } },
+            40: { intra: { be: 3236000, int: 3868000 }, inter: { be: 5977000, int: 7231000 } },
+            50: { intra: { be: 3653000, int: 4367000 }, inter: { be: 6748000, int: 8164000 } },
+            60: { intra: { be: 3887000, int: 4649000 }, inter: { be: 7181000, int: 8690000 } },
+            70: { intra: { be: 4127000, int: 4938000 }, inter: { be: 7625000, int: 9231000 } },
+            80: { intra: { be: 4361000, int: 5214000 }, inter: { be: 8057000, int: 9746000 } },
+            90: { intra: { be: 4595000, int: 5495000 }, inter: { be: 8489000, int: 10272000 } },
+            100: { intra: { be: 4843000, int: 5784000 }, inter: { be: 8946000, int: 10813000 } },
+            200: { intra: { be: 6868000, int: 8213000 }, inter: { be: 12688000, int: 15354000 } },
+            300: { intra: { be: 8355000, int: 9986000 }, inter: { be: 15436000, int: 18667000 } },
+            400: { intra: { be: 9691000, int: 11581000 }, inter: { be: 17904000, int: 21649000 } },
+            500: { intra: { be: 11026000, int: 13174000 }, inter: { be: 20369000, int: 24628000 } },
+            600: { intra: { be: 12361000, int: 14771000 }, inter: { be: 22837000, int: 27612000 } },
+            700: { intra: { be: 13482000, int: 16109000 }, inter: { be: 24907000, int: 30114000 } },
+            800: { intra: { be: 14539000, int: 17376000 }, inter: { be: 26859000, int: 32482000 } },
+            900: { intra: { be: 15595000, int: 18636000 }, inter: { be: 28812000, int: 34837000 } },
+            1000: { intra: { be: 16652000, int: 19903000 }, inter: { be: 30764000, int: 37206000 } },
+            2000: { intra: { be: 32026000, int: 38269000 }, inter: { be: 59167000, int: 71540000 } },
+            3000: { intra: { be: 46246000, int: 55256000 }, inter: { be: 85439000, int: 103295000 } },
+            4000: { intra: { be: 59302000, int: 70864000 }, inter: { be: 109560000, int: 132473000 } },
+            5000: { intra: { be: 71201000, int: 85081000 }, inter: { be: 131543000, int: 159051000 } },
+            6000: { intra: { be: 81948000, int: 97920000 }, inter: { be: 151398000, int: 183052000 } },
+            7000: { intra: { be: 91542000, int: 109379000 }, inter: { be: 169122000, int: 204474000 } },
+            8000: { intra: { be: 99959000, int: 119449000 }, inter: { be: 184674000, int: 223298000 } },
+            9000: { intra: { be: 107238000, int: 128145000 }, inter: { be: 198120000, int: 239555000 } },
+            10000: { intra: { be: 113352000, int: 135451000 }, inter: { be: 209416000, int: 253213000 } }
+        };
+
+        const METRO_SULAWESI_PRICING = {
+            1: { intra: { be: 763000, int: 914000 }, inter: { be: 1110000, int: 1357000 } },
+            2: { intra: { be: 970000, int: 1163000 }, inter: { be: 1411000, int: 1727000 } },
+            3: { intra: { be: 1144000, int: 1370000 }, inter: { be: 1664000, int: 2036000 } },
+            4: { intra: { be: 1317000, int: 1576000 }, inter: { be: 1917000, int: 2341000 } },
+            5: { intra: { be: 1491000, int: 1782000 }, inter: { be: 2170000, int: 2647000 } },
+            6: { intra: { be: 1540000, int: 1842000 }, inter: { be: 2241000, int: 2736000 } },
+            7: { intra: { be: 1623000, int: 1937000 }, inter: { be: 2362000, int: 2878000 } },
+            8: { intra: { be: 1698000, int: 2031000 }, inter: { be: 2471000, int: 3017000 } },
+            9: { intra: { be: 1839000, int: 2195000 }, inter: { be: 2676000, int: 3261000 } },
+            10: { intra: { be: 1979000, int: 2376000 }, inter: { be: 2880000, int: 3529000 } },
+            20: { intra: { be: 2723000, int: 3260000 }, inter: { be: 3962000, int: 4843000 } },
+            30: { intra: { be: 3484000, int: 4170000 }, inter: { be: 5070000, int: 6195000 } },
+            40: { intra: { be: 4229000, int: 5065000 }, inter: { be: 6155000, int: 7525000 } },
+            50: { intra: { be: 4775000, int: 5718000 }, inter: { be: 6949000, int: 8495000 } },
+            60: { intra: { be: 5081000, int: 6087000 }, inter: { be: 7394000, int: 9042000 } },
+            70: { intra: { be: 5395000, int: 6466000 }, inter: { be: 7851000, int: 9605000 } },
+            80: { intra: { be: 5701000, int: 6827000 }, inter: { be: 8296000, int: 10142000 } },
+            90: { intra: { be: 6007000, int: 7195000 }, inter: { be: 8741000, int: 10689000 } },
+            100: { intra: { be: 6330000, int: 7574000 }, inter: { be: 9211000, int: 11252000 } },
+            200: { intra: { be: 8978000, int: 10754000 }, inter: { be: 13065000, int: 15976000 } },
+            300: { intra: { be: 10922000, int: 13075000 }, inter: { be: 15894000, int: 19425000 } },
+            400: { intra: { be: 12668000, int: 15164000 }, inter: { be: 18435000, int: 22527000 } },
+            500: { intra: { be: 14412000, int: 17250000 }, inter: { be: 20974000, int: 25627000 } },
+            600: { intra: { be: 16158000, int: 19340000 }, inter: { be: 23515000, int: 28732000 } },
+            700: { intra: { be: 17623000, int: 21093000 }, inter: { be: 25646000, int: 31335000 } },
+            800: { intra: { be: 19004000, int: 22751000 }, inter: { be: 27656000, int: 33800000 } },
+            900: { intra: { be: 20385000, int: 24401000 }, inter: { be: 29666000, int: 36250000 } },
+            1000: { intra: { be: 21767000, int: 26060000 }, inter: { be: 31676000, int: 38715000 } },
+            2000: { intra: { be: 41863000, int: 50109000 }, inter: { be: 60922000, int: 74442000 } },
+            3000: { intra: { be: 60452000, int: 72350000 }, inter: { be: 87974000, int: 107485000 } },
+            4000: { intra: { be: 77518000, int: 92787000 }, inter: { be: 112810000, int: 137846000 } },
+            5000: { intra: { be: 93071000, int: 111403000 }, inter: { be: 135444000, int: 165502000 } },
+            6000: { intra: { be: 107120000, int: 128214000 }, inter: { be: 155889000, int: 190477000 } },
+            7000: { intra: { be: 119660000, int: 143219000 }, inter: { be: 174139000, int: 212767000 } },
+            8000: { intra: { be: 130663000, int: 156403000 }, inter: { be: 190151000, int: 232355000 } },
+            9000: { intra: { be: 140177000, int: 167791000 }, inter: { be: 203997000, int: 249272000 } },
+            10000: { intra: { be: 148170000, int: 177357000 }, inter: { be: 215627000, int: 263484000 } }
+        };
+
+        const METRO_JATIM_BALI_PRICING = {
+            1: { intra: { be: 517000, int: 615000 }, inter: { be: 903000, int: 1094000 } },
+            2: { intra: { be: 657000, int: 783000 }, inter: { be: 1148000, int: 1392000 } },
+            3: { intra: { be: 775000, int: 922000 }, inter: { be: 1354000, int: 1641000 } },
+            4: { intra: { be: 893000, int: 1061000 }, inter: { be: 1560000, int: 1887000 } },
+            5: { intra: { be: 1011000, int: 1199000 }, inter: { be: 1765000, int: 2134000 } },
+            6: { intra: { be: 1044000, int: 1239000 }, inter: { be: 1823000, int: 2205000 } },
+            7: { intra: { be: 1100000, int: 1303000 }, inter: { be: 1922000, int: 2319000 } },
+            8: { intra: { be: 1151000, int: 1367000 }, inter: { be: 2010000, int: 2432000 } },
+            9: { intra: { be: 1246000, int: 1477000 }, inter: { be: 2177000, int: 2628000 } },
+            10: { intra: { be: 1342000, int: 1599000 }, inter: { be: 2343000, int: 2845000 } },
+            20: { intra: { be: 1845000, int: 2194000 }, inter: { be: 3224000, int: 3904000 } },
+            30: { intra: { be: 2361000, int: 2806000 }, inter: { be: 4125000, int: 4993000 } },
+            40: { intra: { be: 2866000, int: 3408000 }, inter: { be: 5007000, int: 6065000 } },
+            50: { intra: { be: 3236000, int: 3848000 }, inter: { be: 5653000, int: 6847000 } },
+            60: { intra: { be: 3443000, int: 4095000 }, inter: { be: 6015000, int: 7288000 } },
+            70: { intra: { be: 3656000, int: 4350000 }, inter: { be: 6387000, int: 7742000 } },
+            80: { intra: { be: 3864000, int: 4593000 }, inter: { be: 6749000, int: 8174000 } },
+            90: { intra: { be: 4071000, int: 4841000 }, inter: { be: 7111000, int: 8615000 } },
+            100: { intra: { be: 4290000, int: 5096000 }, inter: { be: 7494000, int: 9069000 } },
+            200: { intra: { be: 6084000, int: 7236000 }, inter: { be: 10628000, int: 12877000 } },
+            300: { intra: { be: 7402000, int: 8797000 }, inter: { be: 12930000, int: 15656000 } },
+            400: { intra: { be: 8585000, int: 10202000 }, inter: { be: 14997000, int: 18156000 } },
+            500: { intra: { be: 9767000, int: 11606000 }, inter: { be: 17062000, int: 20655000 } },
+            600: { intra: { be: 10950000, int: 13012000 }, inter: { be: 19130000, int: 23157000 } },
+            700: { intra: { be: 11943000, int: 14191000 }, inter: { be: 20864000, int: 25256000 } },
+            800: { intra: { be: 12879000, int: 15307000 }, inter: { be: 22499000, int: 27242000 } },
+            900: { intra: { be: 13815000, int: 16417000 }, inter: { be: 24134000, int: 29217000 } },
+            1000: { intra: { be: 14751000, int: 17533000 }, inter: { be: 25769000, int: 31203000 } },
+            2000: { intra: { be: 28370000, int: 33713000 }, inter: { be: 49561000, int: 59998000 } },
+            3000: { intra: { be: 40967000, int: 48678000 }, inter: { be: 71568000, int: 86630000 } },
+            4000: { intra: { be: 52533000, int: 62428000 }, inter: { be: 91773000, int: 111100000 } },
+            5000: { intra: { be: 63073000, int: 74953000 }, inter: { be: 110186000, int: 133390000 } },
+            6000: { intra: { be: 72594000, int: 86263000 }, inter: { be: 126818000, int: 153519000 } },
+            7000: { intra: { be: 81092000, int: 96358000 }, inter: { be: 141665000, int: 171485000 } },
+            8000: { intra: { be: 88549000, int: 105229000 }, inter: { be: 154691000, int: 187272000 } },
+            9000: { intra: { be: 94996000, int: 112890000 }, inter: { be: 165955000, int: 200906000 } },
+            10000: { intra: { be: 100412000, int: 119326000 }, inter: { be: 175416000, int: 212361000 } }
+        };
+
         const ASTINET_LITE_PRICING = {
             1: { "JaBoDeTaBek": 81000, "Jawa": 155000, "Sumatera": 210000, "Kalimantan & KTI": 221000 },
             2: { "JaBoDeTaBek": 158000, "Jawa": 305000, "Sumatera": 412000, "Kalimantan & KTI": 434000 },
@@ -995,18 +1155,57 @@
                 service.sites.forEach(site => {
                     const bwVal = parseBandwidth(site.bandwidth);
                     if (bwVal > 0) {
-                        const priceObj = METRO_JABO_PRICING[bwVal];
+                        let priceObj = null;
+                        let price = 0;
+                        const zone = site.zone || 'Jabodetabek'; // Default to Jabodetabek if empty
+
+                        if (zone === 'Jabar Jateng') {
+                            const pricing = METRO_JABAR_JATENG_PRICING[bwVal];
+                            if (pricing) {
+                                // Determine Intra vs Inter based on service-level isInter
+                                const scopeKey = isInter ? 'inter' : 'intra';
+                                priceObj = pricing[scopeKey];
+                            }
+                        } else if (zone === 'Jatim Bali') {
+                            const pricing = METRO_JATIM_BALI_PRICING[bwVal];
+                            if (pricing) {
+                                const scopeKey = isInter ? 'inter' : 'intra';
+                                priceObj = pricing[scopeKey];
+                            }
+                        } else if (zone === 'Sumatra') {
+                            const pricing = METRO_SUMATRA_PRICING[bwVal];
+                            if (pricing) {
+                                const scopeKey = isInter ? 'inter' : 'intra';
+                                priceObj = pricing[scopeKey];
+                            }
+                        } else if (zone === 'Kalimantan') {
+                            const pricing = METRO_KALIMANTAN_PRICING[bwVal];
+                            if (pricing) {
+                                const scopeKey = isInter ? 'inter' : 'intra';
+                                priceObj = pricing[scopeKey];
+                            }
+                        } else if (zone === 'Sulawesi' || zone === 'Sulawesi Selatan') {
+                            const pricing = METRO_SULAWESI_PRICING[bwVal];
+                            if (pricing) {
+                                const scopeKey = isInter ? 'inter' : 'intra';
+                                priceObj = pricing[scopeKey];
+                            }
+                        } else {
+                            // Default / Jabodetabek
+                            priceObj = METRO_JABO_PRICING[bwVal];
+                        }
+
                         if (priceObj) {
-                            // qos: Best Effort vs Interactive
-                            // col: be vs int (interactive)
-                            // But wait, table has Intra/Inter split too.
-                            // structure: { be: ..., int: ... } -> This was my simplified struct assuming identical prices.
-                            // Since I used identical prices for now, I don't need to check isInter for PRICE lookup.
-                            // BUT, if I want to be correct for future, I should have stored { intra_be:..., inter_be:... }
-                            // My previous step stored: { be: ..., int: ... } which implies Intra=Inter.
-                            // So currently:
+                            const qos = service.metroQos || 'Interactive';
                             const typeKey = qos === 'Interactive' ? 'int' : 'be';
-                            totalMrc += priceObj[typeKey];
+                            let basePrice = priceObj[typeKey];
+                            
+                            if (zone === 'Sulawesi Selatan') {
+                                basePrice = basePrice * 1.3;
+                            }
+                            
+                            price = basePrice;
+                            totalMrc += price;
                         }
                     }
                 });
@@ -1209,8 +1408,8 @@
                         } else if (field === 'type' && value === 'Metro Ethernet' && updated.sites.length === 0) {
                             // Pre-fill 2 sites for convenience
                             updated.sites = [
-                                { name: 'Site A', bandwidth: '10 Mbps', isCustomBandwidth: false }, 
-                                { name: 'Site B', bandwidth: '10 Mbps', isCustomBandwidth: false }
+                                { name: 'Site A', bandwidth: '10 Mbps', isCustomBandwidth: false, zone: 'Jabodetabek' }, 
+                                { name: 'Site B', bandwidth: '10 Mbps', isCustomBandwidth: false, zone: 'Jabodetabek' }
                             ];
                         }
                         return updated;
@@ -1222,7 +1421,7 @@
             const addSiteToService = (serviceId) => {
                 setServices(prev => prev.map(s => {
                     if (s.id === serviceId) {
-                        const newSites = [...s.sites, { name: '', bandwidth: '10 Mbps', isCustomBandwidth: false, zone: '' }];
+                        const newSites = [...s.sites, { name: '', bandwidth: '10 Mbps', isCustomBandwidth: false, zone: 'Jabodetabek' }];
                         const updatedService = { ...s, sites: newSites };
                         if (s.type === 'Metro Ethernet') {
                             updatedService.mrc = calculateMetroPrice(updatedService);
@@ -1580,10 +1779,58 @@
                                                         const bwVal = parseBandwidth(site.bandwidth);
                                                         const qos = service.metroQos || 'Interactive';
                                                         let price = 0;
-                                                        if (bwVal > 0 && METRO_JABO_PRICING[bwVal]) {
-                                                            const typeKey = qos === 'Interactive' ? 'int' : 'be';
-                                                            price = METRO_JABO_PRICING[bwVal][typeKey];
+                                                        
+                                                        // Calculate isInter for context
+                                                        const zones = service.sites.map(s => s.zone || '').filter(z => z);
+                                                        const uniqueZones = new Set(zones);
+                                                        const isInter = uniqueZones.size > 1;
+                                                        
+                                                        const zone = site.zone || 'Jabodetabek';
+                                                        let priceObj = null;
+
+                                                        if (zone === 'Jabar Jateng') {
+                                                            const pricing = METRO_JABAR_JATENG_PRICING[bwVal];
+                                                            if (pricing) {
+                                                                const scopeKey = isInter ? 'inter' : 'intra';
+                                                                priceObj = pricing[scopeKey];
+                                                            }
+                                                        } else if (zone === 'Jatim Bali') {
+                                                            const pricing = METRO_JATIM_BALI_PRICING[bwVal];
+                                                            if (pricing) {
+                                                                const scopeKey = isInter ? 'inter' : 'intra';
+                                                                priceObj = pricing[scopeKey];
+                                                            }
+                                                        } else if (zone === 'Sumatra') {
+                                                            const pricing = METRO_SUMATRA_PRICING[bwVal];
+                                                            if (pricing) {
+                                                                const scopeKey = isInter ? 'inter' : 'intra';
+                                                                priceObj = pricing[scopeKey];
+                                                            }
+                                                        } else if (zone === 'Kalimantan') {
+                                                            const pricing = METRO_KALIMANTAN_PRICING[bwVal];
+                                                            if (pricing) {
+                                                                const scopeKey = isInter ? 'inter' : 'intra';
+                                                                priceObj = pricing[scopeKey];
+                                                            }
+                                                        } else if (zone === 'Sulawesi' || zone === 'Sulawesi Selatan') {
+                                                            const pricing = METRO_SULAWESI_PRICING[bwVal];
+                                                            if (pricing) {
+                                                                const scopeKey = isInter ? 'inter' : 'intra';
+                                                                priceObj = pricing[scopeKey];
+                                                            }
+                                                        } else {
+                                                            priceObj = METRO_JABO_PRICING[bwVal];
                                                         }
+
+                                                        if (priceObj) {
+                                                            const typeKey = qos === 'Interactive' ? 'int' : 'be';
+                                                            let basePrice = priceObj[typeKey];
+                                                            if (zone === 'Sulawesi Selatan') {
+                                                                basePrice = basePrice * 1.3;
+                                                            }
+                                                            price = basePrice;
+                                                        }
+
                                                         if (price > 0) {
                                                             return <div className="text-xs text-gray-500 mt-1 font-semibold">Harga: Rp {price.toLocaleString('id-ID')}</div>;
                                                         }
