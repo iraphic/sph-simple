@@ -66,9 +66,30 @@
 
         const SERVICE_OPTIONS = [
             "Astinet", "Astinet Lite", "Astinet Fit", "Astinet Beda Bandwidth",
-            "Metro Ethernet", "SIP Trunk"
+            "Metro Ethernet", "SIP Trunk", "WMS", "WMS Fit", "WMS Lite"
         ];
         
+        const WMS_PACKAGES = {
+            "WMS Silver": { bandwidth: "20 Mbps", price: 435000 },
+            "WMS Gamer 30": { bandwidth: "30 Mbps", price: 600000 },
+            "WMS Gamer 40": { bandwidth: "40 Mbps", price: 775000 },
+            "WMS Gold": { bandwidth: "50 Mbps", price: 950000 },
+            "WMS Platinum": { bandwidth: "100 Mbps", price: 1500000 }
+        };
+
+        const WMS_FIT_PACKAGES = {
+            "WMS Fit Gold": { bandwidth: "50 Mbps", price: 393400 },
+            "WMS Fit GoldPlus 75": { bandwidth: "75 Mbps", price: 519400 },
+            "WMS Fit GoldPlus 100": { bandwidth: "100 Mbps", price: 643300 }
+        };
+
+        const WMS_LITE_PACKAGES = {
+            "WMS Silver Lite": { bandwidth: "30 Mbps", price: 375000 },
+            "WMS Silver Plus Lite": { bandwidth: "40 Mbps", price: 475000 },
+            "WMS Gold Lite": { bandwidth: "50 Mbps", price: 575000 },
+            "WMS Platinum Lite": { bandwidth: "100 Mbps", price: 1000000 }
+        };
+
         const DURATION_OPTIONS = ["12 Bulan", "24 Bulan", "36 Bulan"];
         const BANDWIDTH_OPTIONS = [
             10, 20, 30, 50, 100, 200, 300, 400, 500, 1000, 2000, 5000, 10000
@@ -1018,15 +1039,32 @@
             );
             const hasAstinetAll = services.some(s => s.type.toLowerCase().includes('astinet'));
             const hasSipTrunk = services.some(s => s.type === 'SIP Trunk');
+            const hasWMS = services.some(s => s.type === 'WMS');
+            const hasWMSFit = services.some(s => s.type === 'WMS Fit');
+            const hasWMSLite = services.some(s => s.type === 'WMS Lite');
 
             if (hasMetroE) slgItems.push("Metro E : 99.5%");
             if (hasIpTransit) slgItems.push("IP Transit : 99.5%");
             if (hasNeucentrix) slgItems.push("Neucentrix: 99.74%");
             if (hasAstinetAll) slgItems.push("Astinet (all) : 95%");
             if (hasSipTrunk) slgItems.push("SIPTrunk : 95%");
+            if (hasWMS) slgItems.push("WMS : 99%");
+            if (hasWMSFit) slgItems.push("WMS Fit : 99%");
+            if (hasWMSLite) slgItems.push("WMS Lite : 99%");
 
             const termsList = [
                 ...(localLoopTerm ? [localLoopTerm] : []),
+                ...(hasWMS ? ["Layanan WMS sudah termasuk perangkat Access Point dan manage service dari Telkom."] : []),
+                ...(hasWMSFit ? [
+                    "Layanan WMS Fit mendukung 6 metode login fleksibel (portal) + WPA2-PSK (non-portal).",
+                    "Layanan WMS Fit menggunakan SSID single khusus venue."
+                ] : []),
+                ...(hasWMSLite ? [
+                    "Layanan WMS Lite mendukung kapasitas hingga 32 pengguna.",
+                    "Layanan WMS Lite mendukung 6 metode login fleksibel (portal).",
+                    "Layanan WMS Lite memiliki radius jangkauan 15 meter (indoor).",
+                    "Layanan WMS Lite menggunakan SSID single khusus venue."
+                ] : []),
                 "Seluruh Biaya belum termasuk PPN (11%).",
                 "End Delivery berupa modem yang disediakan Telkom dengan interface port LAN-Ethernet.",
                 "Kabel LAN Ethernet, perangkat router, mikrotik, access point, catuan listrik, Instalasi Kabel Gedung (IKG) dan CPE lainnya merupakan tanggungan Pelanggan.",
@@ -1492,7 +1530,7 @@
                             }
                         }}
                         className="form-control"
-                        style={{flex:1}}
+                        style={isCustom ? {flex: '0 0 90px'} : {flex:1}}
                     >
                         {bwOptions.map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
@@ -1580,7 +1618,7 @@
                         bandwidth: '100 Mbps',
                         location: '',
                         sites: [],
-                        otc: 0,
+                        otc: 2500000,
                         mrc: 0,
                         remarks: '',
                         isCustomBandwidth: false,
@@ -1717,7 +1755,6 @@
                                  else if (ip >= 6 && ip <= 12) otc += 1000000;
                                  
                                  // 4. CC MRC
-                                 // Find exact match or next higher
                                  const ccKeys = Object.keys(SIPTRUNK_MRC_CC).map(Number).sort((a,b) => a-b);
                                  const matchedCC = ccKeys.find(k => k >= cc);
                                  if (matchedCC) {
@@ -1735,6 +1772,51 @@
                                  
                                  updated.otc = otc;
                                  updated.mrc = mrc;
+                             }
+                        }
+
+                        // Logic for WMS & WMS Fit Auto-Pricing
+                        if (updated.type === 'WMS') {
+                             if (field === 'type') {
+                                 updated.otc = 500000;
+                                 updated.bandwidth = "20 Mbps"; // Default to Silver
+                                 updated.mrc = WMS_PACKAGES["WMS Silver"].price;
+                                 updated.isCustomBandwidth = false;
+                             }
+                             
+                             if (field === 'bandwidth') {
+                                 const pkg = Object.values(WMS_PACKAGES).find(p => p.bandwidth === value);
+                                 if (pkg) {
+                                     updated.mrc = pkg.price;
+                                 }
+                             }
+                        } else if (updated.type === 'WMS Fit') {
+                             if (field === 'type') {
+                                 updated.otc = 500000;
+                                 updated.bandwidth = "50 Mbps"; // Default to Fit Gold
+                                 updated.mrc = WMS_FIT_PACKAGES["WMS Fit Gold"].price;
+                                 updated.isCustomBandwidth = false;
+                             }
+                             
+                             if (field === 'bandwidth') {
+                                 const pkg = Object.values(WMS_FIT_PACKAGES).find(p => p.bandwidth === value);
+                                 if (pkg) {
+                                     updated.mrc = pkg.price;
+                                 }
+                             }
+                        } else if (updated.type === 'WMS Lite') {
+                             if (field === 'type') {
+                                 updated.otc = 500000;
+                                 updated.bandwidth = "30 Mbps"; // Default to Silver Lite
+                                 updated.mrc = WMS_LITE_PACKAGES["WMS Silver Lite"].price;
+                                 updated.isCustomBandwidth = false;
+                             }
+                             
+                             if (field === 'bandwidth') {
+                                 const pkg = Object.values(WMS_LITE_PACKAGES).find(p => p.bandwidth === value);
+                                 if (pkg) {
+                                     updated.mrc = pkg.price;
+                                 }
                              }
                         }
 
@@ -2091,6 +2173,42 @@
                                                     />
                                                 </div>
                                             </div>
+                                        ) : service.type === 'WMS' ? (
+                                            <select
+                                                value={service.bandwidth}
+                                                onChange={(e) => updateService(service.id, 'bandwidth', e.target.value)}
+                                                className="form-control"
+                                            >
+                                                {Object.entries(WMS_PACKAGES).map(([pkgName, pkgDetails]) => (
+                                                    <option key={pkgName} value={pkgDetails.bandwidth}>
+                                                        {pkgName} ({pkgDetails.bandwidth})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : service.type === 'WMS Fit' ? (
+                                            <select
+                                                value={service.bandwidth}
+                                                onChange={(e) => updateService(service.id, 'bandwidth', e.target.value)}
+                                                className="form-control"
+                                            >
+                                                {Object.entries(WMS_FIT_PACKAGES).map(([pkgName, pkgDetails]) => (
+                                                    <option key={pkgName} value={pkgDetails.bandwidth}>
+                                                        {pkgName} ({pkgDetails.bandwidth})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : service.type === 'WMS Lite' ? (
+                                            <select
+                                                value={service.bandwidth}
+                                                onChange={(e) => updateService(service.id, 'bandwidth', e.target.value)}
+                                                className="form-control"
+                                            >
+                                                {Object.entries(WMS_LITE_PACKAGES).map(([pkgName, pkgDetails]) => (
+                                                    <option key={pkgName} value={pkgDetails.bandwidth}>
+                                                        {pkgName} ({pkgDetails.bandwidth})
+                                                    </option>
+                                                ))}
+                                            </select>
                                         ) : (
                                             <BandwidthSelector
                                                 value={service.bandwidth}
@@ -2272,6 +2390,7 @@
                                     <div className="form-group">
                                         <label>Lokasi</label>
                                         <div className="flex gap-2">
+                                            {!['WMS', 'WMS Fit', 'WMS Lite'].includes(service.type) && (
                                             <select
                                                 value={LOCATION_OPTIONS.includes(service.location) ? service.location : (service.location ? 'Custom' : '')}
                                                 onChange={(e) => {
@@ -2287,13 +2406,14 @@
                                                 ))}
                                                 <option value="Custom">Custom</option>
                                             </select>
-                                            {(!LOCATION_OPTIONS.includes(service.location)) && (
+                                            )}
+                                            {(['WMS', 'WMS Fit', 'WMS Lite'].includes(service.type) || !LOCATION_OPTIONS.includes(service.location)) && (
                                                 <input
                                                     type="text"
                                                     value={service.location}
                                                     onChange={(e) => updateService(service.id, 'location', e.target.value)}
                                                     className="form-control"
-                                                    placeholder="Isi lokasi manual"
+                                                    placeholder={['WMS', 'WMS Fit', 'WMS Lite'].includes(service.type) ? "Isi lokasi" : "Isi lokasi manual"}
                                                     style={{flex:1}}
                                                 />
                                             )}
@@ -2366,9 +2486,38 @@
                             </button>
                         </div>
 
-                        <div style={{marginTop: '40px', textAlign: 'center', color: '#666', fontSize: '0.9em', fontStyle: 'italic', borderTop: '1px solid #eee', paddingTop: '20px'}}>
-                            *for next development will add these services (IP Transit Mix, IP Transit Beda Bandwidth, VPN IP, WMS, WMS Lite, WMS Fit, and SL WDM)
+                        
+                        {/* Footer Images for Copy-Paste */}
+                        <div className="mt-8 border-t pt-4 text-center">
+                            <h3 className="text-gray-600 font-bold mb-4">
+                                Header & Footer Images <br/>
+                                <span className="text-sm font-normal">(Add on For Manual Copy-Paste in SPH)</span>
+                            </h3>
+                            <div className="flex flex-col gap-6 items-center">
+                                {/* Header (Logo) */}
+                                <div className="border p-2 rounded bg-white shadow-sm" style={{maxWidth: '100%'}}>
+                                    <p className="text-sm text-gray-500 mb-2">Header (Logo)</p>
+                                    <img 
+                                        src="./Picture1.jpg" 
+                                        alt="Telkom Indonesia Logo" 
+                                        style={{maxWidth: '200px', height: 'auto', display: 'block', margin: '0 auto'}} 
+                                    />
+                                </div>
+                                {/* Footer (Pattern) */}
+                                <div className="border p-2 rounded bg-white shadow-sm" style={{maxWidth: '100%'}}>
+                                    <p className="text-sm text-gray-500 mb-2">Footer (Pattern)</p>
+                                    <img 
+                                        src="./Picture2-.png" 
+                                        alt="Footer Pattern" 
+                                        style={{maxWidth: '100%', height: 'auto', display: 'block', margin: '0 auto'}} 
+                                    />
+                                </div>
+                            </div>
                         </div>
+                    </div>
+
+                    <div style={{maxWidth: '56rem', margin: '0 auto', textAlign: 'center', color: '#666', fontSize: '0.75rem', fontStyle: 'italic', paddingLeft: '1rem', paddingRight: '1rem'}}>
+                        *for next development will add these services (IP Transit Mix, IP Transit Beda Bandwidth, VPN IP, and SL WDM)
                     </div>
                 </div>
             );
