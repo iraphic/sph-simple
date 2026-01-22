@@ -1422,6 +1422,9 @@
                                         {isDaily && (
                                             <div style={{fontSize: '0.8em', color: '#666', marginTop: '4px'}}>
                                                 (Base Bulanan: {(service.mrc || 0).toLocaleString('id-ID')})
+                                                <div style={{color: '#10b981', fontWeight: 'bold'}}>
+                                                    Diskon: Rp {((service.mrc || 0) - Math.round(service.mrc * priceMultiplier)).toLocaleString('id-ID')} ({Math.round((1 - priceMultiplier) * 100)}%)
+                                                </div>
                                             </div>
                                         )}
                                     </div>
