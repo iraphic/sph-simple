@@ -78,6 +78,22 @@
             "Kalimantan & KTI"
         ];
 
+        const AM_NAMES = [
+            "AMALIA HUSNA TSABITAH",
+            "ANDRI",
+            "DWI IRIANI",
+            "FIRDA DUANA MONARDI",
+            "FIRMAN AMRULLAH",
+            "FIRRA MONICHA MUKHNERI",
+            "IKA MUFLIHA",
+            "MOHAMAD HELMI RIYANDANU",
+            "ROSDIANA",
+            "SABDA MOCHAMAD FIRDI TOEKAN",
+            "SABILA AMNI",
+            "TIKA ZELFIANA",
+            "YOSY AGUSTIA"
+        ];
+
         const ASTINET_PRICING = {
             1: { "JaBoDeTaBek": 125000, "Jawa": 143000, "Sumatera": 152000, "Kalimantan & KTI": 155000 },
             2: { "JaBoDeTaBek": 243000, "Jawa": 273000, "Sumatera": 291000, "Kalimantan & KTI": 316000 },
@@ -304,6 +320,51 @@
             const { amName, customerName, subscriptionDuration } = formData;
             const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
+            // --- Duration Parsing & Pricing Logic ---
+            const durationMatch = subscriptionDuration.match(/(\d+)\s*(Bulan|Hari)/i);
+            const durationValue = durationMatch ? parseInt(durationMatch[1]) : 12;
+            const durationUnit = durationMatch ? durationMatch[2] : 'Bulan';
+            const isDaily = durationUnit.toLowerCase() === 'hari';
+
+            let priceMultiplier = 1;
+            if (isDaily) {
+                if (durationValue >= 1 && durationValue <= 3) priceMultiplier = 0.33;
+                else if (durationValue >= 4 && durationValue <= 7) priceMultiplier = 0.53;
+                else if (durationValue >= 8 && durationValue <= 14) priceMultiplier = 0.90;
+                else if (durationValue >= 15 && durationValue <= 30) priceMultiplier = 1.00;
+            }
+            // ----------------------------------------
+
+            // --- Dynamic Content Logic ---
+            const uniqueServices = [...new Set(services.map(s => s.type))];
+            let serviceNamesString = uniqueServices[0];
+            if (uniqueServices.length > 1) {
+                const last = uniqueServices.pop();
+                serviceNamesString = uniqueServices.join(', ') + ' dan ' + last;
+            }
+
+            const hasAstinet = services.some(s => s.type.toLowerCase().includes('astinet'));
+            const hasMetro = services.some(s => s.type === 'Metro Ethernet');
+            
+            let localLoopTerm = null;
+            if (hasAstinet && hasMetro) {
+                localLoopTerm = "Harga Layanan bulanan Astinet dan Metro Ethernet di atas BELUM termasuk biaya Local Loop sebesar Rp 750,000 per KM (Astinet) dan Rp 950,000 per KM (Metro Ethernet) (apabila di atas 5 km dari site POP Telkom terdekat lokasi pelanggan)";
+            } else if (hasAstinet) {
+                localLoopTerm = "Harga Layanan bulanan Astinet di atas BELUM termasuk biaya Local Loop sebesar Rp 750,000 per KM (apabila di atas 5 km dari site POP Telkom terdekat lokasi pelanggan)";
+            } else if (hasMetro) {
+                localLoopTerm = "Harga Layanan bulanan Metro Ethernet di atas BELUM termasuk biaya Local Loop sebesar Rp 950,000 per KM (apabila di atas 5 km dari site POP Telkom terdekat lokasi pelanggan)";
+            }
+
+            const termsList = [
+                ...(localLoopTerm ? [localLoopTerm] : []),
+                "Seluruh Biaya belum termasuk PPN (11%).",
+                "End Delivery berupa modem yang disediakan Telkom dengan interface port LAN-Ethernet.",
+                "Kabel LAN Ethernet, perangkat router, mikrotik, access point, catuan listrik, Instalasi Kabel Gedung (IKG) dan CPE lainnya merupakan tanggungan Pelanggan.",
+                `Masa berlaku penawaran 20 hari sejak tanggal surat ini. (Lama berlangganan: ${subscriptionDuration})`,
+                "Penawaran bersifat terbatas/rahasia tidak diperkenankan disebarluaskan."
+            ];
+            // -----------------------------
+
             const doc = new Document({
                 sections: [{
                     properties: {},
@@ -363,7 +424,7 @@
                         }),
 
                         new Paragraph({
-                            text: `Sehubungan dengan informasi kebutuhan layanan internet dedicated yang kami terima, bersama ini kami sampaikan penawaran layanan untuk ${customerName.toUpperCase()} sebagai berikut :`,
+                            text: `Sehubungan dengan informasi kebutuhan layanan ${serviceNamesString} yang kami terima, bersama ini kami sampaikan penawaran layanan untuk ${customerName.toUpperCase()} sebagai berikut :`,
                             alignment: AlignmentType.JUSTIFIED,
                             font: "Times New Roman",
                             spacing: { after: 300 }
@@ -384,7 +445,7 @@
                                     const col4Header = service.type === 'SIP Trunk' ? "Spesifikasi" : `BW (${bwUnit})`;
                                     const headerRow = new TableRow({
                                         children: [
-                                            "No", "List Kebutuhan", "Site", col4Header, "Harga Aktivasi (Rp)", "Harga Layanan (Rp)", "Ket"
+                                            "No", "List Kebutuhan", "Site", col4Header, "Harga Aktivasi (Rp)", "Harga Bulanan (Rp)", "Ket"
                                         ].map(text => new TableCell({
                                             children: [new Paragraph({ 
                                                 children: [new TextRun({ text, bold: true, color: "FFFFFF", font: "Times New Roman", size: 20 })], 
@@ -423,7 +484,13 @@
                             } else {
                                 // Non-Metro (Astinet etc)
                                 const otc = parseFloat(service.otc) || 0;
-                                const mrc = parseFloat(service.mrc) || 0;
+                                let mrc = parseFloat(service.mrc) || 0;
+
+                                // Apply Temporary Pricing Logic
+                                if (isDaily) {
+                                    mrc = Math.round(mrc * priceMultiplier);
+                                }
+
                                 totalOtc = otc;
                                 totalMrc = mrc;
 
@@ -441,14 +508,32 @@
                             }
 
                             // Total Row
+                            const contractDuration = isDaily ? 1 : (parseInt(subscriptionDuration) || 12);
+                            const totalContract = totalOtc + (totalMrc * contractDuration);
+
                             rows.push(new TableRow({
                                 children: [
                                     new TableCell({ 
                                         columnSpan: 4,
-                                        children: [new Paragraph({ text: "Total", alignment: AlignmentType.RIGHT, bold: true, font: "Times New Roman" })] 
+                                        children: [new Paragraph({ text: "Total Bulanan", alignment: AlignmentType.RIGHT, bold: true, font: "Times New Roman" })] 
                                     }),
                                     new TableCell({ children: [new Paragraph({ text: totalOtc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
                                     new TableCell({ children: [new Paragraph({ text: totalMrc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Times New Roman" })] }),
+                                    new TableCell({ children: [new Paragraph({ text: "", font: "Times New Roman" })] }),
+                                ]
+                            }));
+
+                            // Contract Total Row
+                            rows.push(new TableRow({
+                                children: [
+                                    new TableCell({ 
+                                        columnSpan: 4,
+                                        children: [new Paragraph({ text: `Total Biaya Selama ${subscriptionDuration}`, alignment: AlignmentType.RIGHT, bold: true, font: "Times New Roman" })] 
+                                    }),
+                                    new TableCell({ 
+                                        columnSpan: 2,
+                                        children: [new Paragraph({ text: totalContract.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, bold: true, font: "Times New Roman" })] 
+                                    }),
                                     new TableCell({ children: [new Paragraph({ text: "", font: "Times New Roman" })] }),
                                 ]
                             }));
@@ -473,7 +558,7 @@
                                     new TableRow({
                                         children: [
                                             new TableCell({ 
-                                                children: [new Paragraph({ text: "TOTAL KESELURUHAN", bold: true, font: "Times New Roman", alignment: AlignmentType.RIGHT })],
+                                                children: [new Paragraph({ text: "TOTAL KESELURUHAN (BULANAN)", bold: true, font: "Times New Roman", alignment: AlignmentType.RIGHT })],
                                                 columnSpan: 4,
                                                 shading: { fill: "E0E0E0" },
                                                 verticalAlign: VerticalAlign.CENTER
@@ -510,6 +595,46 @@
                                                 verticalAlign: VerticalAlign.CENTER
                                             })
                                         ]
+                                    }),
+                                    new TableRow({
+                                        children: [
+                                            new TableCell({ 
+                                                children: [new Paragraph({ text: `TOTAL BIAYA SELAMA ${subscriptionDuration.toUpperCase()}`, bold: true, font: "Times New Roman", alignment: AlignmentType.RIGHT })],
+                                                columnSpan: 4,
+                                                shading: { fill: "E0E0E0" },
+                                                verticalAlign: VerticalAlign.CENTER
+                                            }),
+                                            new TableCell({ 
+                                                children: [new Paragraph({ text: services.reduce((acc, s) => {
+                                                    const contractDuration = isDaily ? 1 : (parseInt(subscriptionDuration) || 12);
+                                                    let otc = 0;
+                                                    let mrc = 0;
+                                                    if (s.type === 'Metro Ethernet') {
+                                                        s.sites.forEach(() => {
+                                                            otc += parseFloat(s.otc) || 0;
+                                                            mrc += parseFloat(s.mrc) || 0;
+                                                        });
+                                                    } else {
+                                                        otc += parseFloat(s.otc) || 0;
+                                                        mrc += parseFloat(s.mrc) || 0;
+                                                    }
+                                                    
+                                                    if (isDaily) {
+                                                        mrc = Math.round(mrc * priceMultiplier);
+                                                    }
+
+                                                    return acc + otc + (mrc * contractDuration);
+                                                }, 0).toLocaleString('id-ID'), bold: true, font: "Times New Roman", alignment: AlignmentType.RIGHT })],
+                                                columnSpan: 2,
+                                                shading: { fill: "E0E0E0" },
+                                                verticalAlign: VerticalAlign.CENTER
+                                            }),
+                                            new TableCell({ 
+                                                children: [new Paragraph({ text: "", font: "Times New Roman" })],
+                                                shading: { fill: "E0E0E0" },
+                                                verticalAlign: VerticalAlign.CENTER
+                                            })
+                                        ]
                                     })
                                 ],
                                 width: { size: 100, type: WidthType.PERCENTAGE },
@@ -524,14 +649,7 @@
                             font: "Times New Roman",
                             size: 20
                         }),
-                        ...[
-                            "Harga Layanan bulanan di atas sudah termasuk biaya Local Loop sebesar Rp 950,000 per KM (di atas 5 km)",
-                            "Seluruh Biaya belum termasuk PPN (11%).",
-                            "End Delivery berupa modem yang disediakan Telkom dengan interface port LAN-Ethernet.",
-                            "Kabel LAN Ethernet, perangkat router, mikrotik, access point, catuan listrik, Instalasi Kabel Gedung (IKG) dan CPE lainnya merupakan tanggungan Pelanggan.",
-                            `Masa berlaku penawaran 20 hari sejak tanggal surat ini. (Lama berlangganan: ${subscriptionDuration})`,
-                            "Penawaran bersifat terbatas/rahasia tidak diperkenankan disebarluaskan."
-                        ].map((term, i) => new Paragraph({
+                        ...termsList.map((term, i) => new Paragraph({
                             text: `${i + 1}. ${term}`,
                             italics: true,
                             font: "Times New Roman",
@@ -549,14 +667,14 @@
                         }),
 
                         // Signature
-                        new Paragraph({ text: "Hormat saya,", font: "Times New Roman", spacing: { after: 800 } }),
+                        new Paragraph({ text: "Hormat saya,", font: "Times New Roman", spacing: { after: 300 } }),
                         new Paragraph({ 
                             children: [
-                                new TextRun({ text: amName, bold: true, size: 28, font: "Brush Script MT" }) // Trying to look like signature or just bold name
+                                new TextRun({ text: amName, bold: true, size: 48, font: "Mistral" })
                             ]
                         }), 
-                        new Paragraph({ text: amName, bold: true, font: "Times New Roman" }),
-                        new Paragraph({ text: "Senior Account Manager", italics: true, font: "Times New Roman" }),
+                        new Paragraph({ text: "Account Manager", italics: true, font: "Times New Roman" }),
+                        new Paragraph({ text: "Witel Jakarta Centrum", italics: true, font: "Times New Roman" }),
                     ]
                 }]
             });
@@ -677,6 +795,8 @@
                 customerName: '',
                 subscriptionDuration: '12 Bulan',
             });
+
+            const [isAmCustom, setIsAmCustom] = useState(false);
 
             const [services, setServices] = useState([
                 {
@@ -958,6 +1078,20 @@
                 }));
             };
 
+            // --- Duration Parsing & Pricing Logic for Display ---
+            const durationMatch = formData.subscriptionDuration.match(/(\d+)\s*(Bulan|Hari)/i);
+            const durationValue = durationMatch ? parseInt(durationMatch[1]) : 12;
+            const durationUnit = durationMatch ? durationMatch[2] : 'Bulan';
+            const isDaily = durationUnit.toLowerCase() === 'hari';
+
+            let priceMultiplier = 1;
+            if (isDaily) {
+                if (durationValue >= 1 && durationValue <= 3) priceMultiplier = 0.33;
+                else if (durationValue >= 4 && durationValue <= 7) priceMultiplier = 0.53;
+                else if (durationValue >= 8 && durationValue <= 14) priceMultiplier = 0.90;
+                else if (durationValue >= 15 && durationValue <= 30) priceMultiplier = 1.00;
+            }
+
             return (
                 <div className="container my-10">
                     <div className="header">
@@ -973,14 +1107,40 @@
                         <div className="grid-3">
                             <div className="form-group">
                                 <label>Nama AM (Account Manager)</label>
-                                <input
-                                    type="text"
-                                    name="amName"
-                                    value={formData.amName}
-                                    onChange={handleInputChange}
-                                    className="form-control"
-                                    placeholder="Ex: Dwi Iriani"
-                                />
+                                <div className="flex gap-2">
+                                    <select
+                                        value={isAmCustom ? 'Custom' : (AM_NAMES.includes(formData.amName) ? formData.amName : '')}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === 'Custom') {
+                                                setIsAmCustom(true);
+                                                setFormData(prev => ({ ...prev, amName: '' }));
+                                            } else {
+                                                setIsAmCustom(false);
+                                                setFormData(prev => ({ ...prev, amName: val }));
+                                            }
+                                        }}
+                                        className="form-control"
+                                        style={{flex:1}}
+                                    >
+                                        <option value="" disabled>-- Pilih AM --</option>
+                                        {AM_NAMES.map(name => (
+                                            <option key={name} value={name}>{name}</option>
+                                        ))}
+                                        <option value="Custom">Custom (Manual Input)</option>
+                                    </select>
+                                </div>
+                                {isAmCustom && (
+                                    <input
+                                        type="text"
+                                        name="amName"
+                                        value={formData.amName}
+                                        onChange={handleInputChange}
+                                        className="form-control mt-2"
+                                        placeholder="Ketik Nama AM..."
+                                        autoFocus
+                                    />
+                                )}
                             </div>
                             <div className="form-group">
                                 <label>Nama Pelanggan</label>
@@ -996,35 +1156,38 @@
                             <div className="form-group">
                                 <label>Lama Berlangganan</label>
                                 <div className="flex gap-2">
-                                    <select
-                                        value={DURATION_OPTIONS.includes(formData.subscriptionDuration) ? formData.subscriptionDuration : 'Custom'}
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={parseInt(formData.subscriptionDuration) || ''}
                                         onChange={(e) => {
                                             const val = e.target.value;
+                                            const unit = formData.subscriptionDuration.toLowerCase().includes('hari') ? 'Hari' : 'Bulan';
                                             setFormData(prev => ({ 
                                                 ...prev, 
-                                                subscriptionDuration: val === 'Custom' ? '' : val 
+                                                subscriptionDuration: val ? `${val} ${unit}` : '' 
                                             }));
                                         }}
                                         className="form-control"
+                                        placeholder="Nilai"
                                         style={{flex:1}}
+                                    />
+                                    <select
+                                        value={formData.subscriptionDuration.toLowerCase().includes('hari') ? 'Hari' : 'Bulan'}
+                                        onChange={(e) => {
+                                            const unit = e.target.value;
+                                            const val = parseInt(formData.subscriptionDuration) || 12;
+                                            setFormData(prev => ({ 
+                                                ...prev, 
+                                                subscriptionDuration: `${val} ${unit}` 
+                                            }));
+                                        }}
+                                        className="form-control"
+                                        style={{width: '120px'}}
                                     >
-                                        {DURATION_OPTIONS.map(opt => (
-                                            <option key={opt} value={opt}>{opt}</option>
-                                        ))}
-                                        <option value="Custom">Custom</option>
+                                        <option value="Bulan">Bulan</option>
+                                        <option value="Hari">Hari</option>
                                     </select>
-                                    {(!DURATION_OPTIONS.includes(formData.subscriptionDuration)) && (
-                                        <input
-                                            type="text"
-                                            name="subscriptionDuration"
-                                            value={formData.subscriptionDuration}
-                                            onChange={handleInputChange}
-                                            className="form-control"
-                                            placeholder="Ex: 6 Bulan"
-                                            style={{flex:1}}
-                                            autoFocus
-                                        />
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1243,13 +1406,24 @@
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label>Harga Layanan (Bulanan)</label>
+                                        <label>{isDaily ? `Harga Layanan (${durationValue} Hari)` : 'Harga Layanan (Bulanan)'}</label>
                                         <FormattedNumberInput
-                                            value={service.mrc}
-                                            onChange={(val) => updateService(service.id, 'mrc', val)}
+                                            value={isDaily ? Math.round(service.mrc * priceMultiplier) : service.mrc}
+                                            onChange={(val) => {
+                                                let newMrc = val;
+                                                if (isDaily && priceMultiplier > 0) {
+                                                     newMrc = Math.round(val / priceMultiplier);
+                                                }
+                                                updateService(service.id, 'mrc', newMrc);
+                                            }}
                                             className="form-control"
                                             placeholder="0"
                                         />
+                                        {isDaily && (
+                                            <div style={{fontSize: '0.8em', color: '#666', marginTop: '4px'}}>
+                                                (Base Bulanan: {(service.mrc || 0).toLocaleString('id-ID')})
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="form-group">
                                         <label>Keterangan</label>
