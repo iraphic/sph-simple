@@ -1617,7 +1617,7 @@
 
             const headerLocalLoopRow = new TableRow({
                 children: [
-                    "No", "Layanan", "Lokasi / Site", "Jarak (km)", "Harga/km (Rp)", "Total (Rp)"
+                    "No", "Layanan", "Lokasi / Site", "Jarak (km)", "Harga/km (Rp)", "Total (Rp)", "Total Stlh PPN"
                 ].map(text => new TableCell({
                     children: [new Paragraph({ 
                         children: [new TextRun({ text, bold: true, color: "FFFFFF", font: "Aptos Narrow", size: 20 })], 
@@ -1635,6 +1635,7 @@
                      const dist = parseFloat(service.distanceKm);
                      const chargeableDist = dist - 5;
                      const cost = chargeableDist * 750000 * qty;
+                     const costWithPpn = Math.round(cost * 1.11);
                      totalLocalLoopMrc += cost;
                      
                      localLoopRows.push(new TableRow({
@@ -1645,6 +1646,7 @@
                              new TableCell({ children: [new Paragraph({ text: `${dist} km (Chargeable: ${chargeableDist.toFixed(1)} km)`, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
                              new TableCell({ children: [new Paragraph({ text: "750.000", alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                              new TableCell({ children: [new Paragraph({ text: cost.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
+                             new TableCell({ children: [new Paragraph({ text: costWithPpn.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                          ]
                      }));
                 } else if (service.type === 'Metro Ethernet') {
@@ -1774,7 +1776,7 @@
                                     const col4Header = service.type === 'SIP Trunk' ? "Spesifikasi" : `BW (${bwUnit})`;
                                     
                                     const isAstinet = service.type.toLowerCase().includes('astinet') || service.type.includes('IP Transit');
-                                    const headerCols = ["No", "List Kebutuhan", "Site / Lokasi", col4Header, "Harga Aktivasi (Rp)", "Harga Bulanan (Rp)"];
+                                    const headerCols = ["No", "List Kebutuhan", "Site / Lokasi", col4Header, "Harga Aktivasi (Rp)", "Harga Bulanan (Rp)", "Harga Stlh PPN"];
                                     if (!isAstinet) headerCols.push("Ket");
 
                                     const headerRow = new TableRow({
@@ -1845,6 +1847,9 @@
                                     totalOtc += siteOtc * qty;
                                     totalMrc += siteMrc * qty;
 
+                                    const siteMrcTotal = siteMrc * qty;
+                                    const siteMrcTotalWithPpn = Math.round(siteMrcTotal * 1.11);
+
                                     rows.push(new TableRow({
                                         children: [
                                             new TableCell({ children: [new Paragraph({ text: (i + 1).toString(), alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
@@ -1852,7 +1857,8 @@
                                             new TableCell({ children: [new Paragraph({ text: `${site.name} (${site.zone || 'Jabodetabek'})${site.isNeucentrix ? ' - Metro Neucentrix' : ''}`, alignment: AlignmentType.CENTER, bold: true, font: "Aptos Narrow" })] }),
                                             new TableCell({ children: [new Paragraph({ text: site.bandwidth.replace(/\D/g,''), alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }), 
                                             new TableCell({ children: [new Paragraph({ text: siteOtc > 0 ? (siteOtc * qty).toLocaleString('id-ID') : "-", alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                                            new TableCell({ children: [new Paragraph({ text: (siteMrc * qty).toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
+                                            new TableCell({ children: [new Paragraph({ text: siteMrcTotal.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
+                                            new TableCell({ children: [new Paragraph({ text: siteMrcTotalWithPpn.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                                             new TableCell({ children: [new Paragraph({ text: i === 0 ? "Backhaul" : "Site", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }), 
                                         ]
                                     }));
@@ -1873,6 +1879,8 @@
                                 totalOtc = otc * qty;
                                 totalMrc = mrc * qty;
 
+                                const mrcTotalWithPpn = Math.round(totalMrc * 1.11);
+
                                 const rowCells = [
                                         new TableCell({ children: [new Paragraph({ text: "1", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
                                         new TableCell({ children: [new Paragraph({ text: `${service.type}${qty > 1 ? ` (x${qty})` : ''}`, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
@@ -1889,6 +1897,7 @@
                                         }),
                                         new TableCell({ children: [new Paragraph({ text: (otc * qty).toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                                         new TableCell({ children: [new Paragraph({ text: (mrc * qty).toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: mrcTotalWithPpn.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                                 ];
                                 if (!isAstinet) {
                                     rowCells.push(new TableCell({ children: [new Paragraph({ text: service.remarks || "-", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }));
@@ -1902,6 +1911,9 @@
                             // Total Row
                             const contractDuration = isDaily ? 1 : (parseInt(subscriptionDuration) || 12);
                             const totalContract = totalOtc + (totalMrc * contractDuration);
+                            
+                            const totalMrcWithPpn = Math.round(totalMrc * 1.11);
+                            const totalContractWithPpn = Math.round(totalContract * 1.11);
 
                             const totalRowCells = [
                                     new TableCell({ 
@@ -1910,6 +1922,7 @@
                                     }),
                                     new TableCell({ children: [new Paragraph({ text: totalOtc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                                     new TableCell({ children: [new Paragraph({ text: totalMrc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
+                                    new TableCell({ children: [new Paragraph({ text: totalMrcWithPpn.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                             ];
                             if (!isAstinet) {
                                 totalRowCells.push(new TableCell({ children: [new Paragraph({ text: "", font: "Aptos Narrow" })] }));
@@ -1929,6 +1942,7 @@
                                         columnSpan: 2,
                                         children: [new Paragraph({ text: totalContract.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, bold: true, font: "Aptos Narrow" })] 
                                     }),
+                                    new TableCell({ children: [new Paragraph({ text: totalContractWithPpn.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, bold: true, font: "Aptos Narrow" })] }),
                             ];
                             if (!isAstinet) {
                                 contractRowCells.push(new TableCell({ children: [new Paragraph({ text: "", font: "Aptos Narrow" })] }));
@@ -2010,7 +2024,14 @@
                                                 children: [new Paragraph({ text: services.reduce((acc, s) => {
                                                     let mrc = parseFloat(s.mrc) || 0;
                                                     const qty = s.quantity || 1;
+                                                    
+                                                    // Discount
+                                                    const discountValRaw = s.discountPercent;
+                                                    const discountPercent = (typeof discountValRaw === 'number') ? discountValRaw : parseFloat(String(discountValRaw || 0).replace(/,/g, '.')) || 0;
+
                                                     if (isDaily) mrc = Math.round(mrc * priceMultiplier);
+                                                    mrc = Math.round(mrc * (1 - discountPercent / 100));
+
                                                     return acc + (mrc * qty);
                                                 }, totalLocalLoopMrc).toLocaleString('id-ID'), bold: true, font: "Aptos Narrow", alignment: AlignmentType.RIGHT })],
                                                 columnSpan: 2,
@@ -2043,12 +2064,61 @@
                                                          otc += parseFloat(s.otc) || 0;
                                                      }
                                                     
+                                                    // Discount
+                                                    const discountValRaw = s.discountPercent;
+                                                    const discountPercent = (typeof discountValRaw === 'number') ? discountValRaw : parseFloat(String(discountValRaw || 0).replace(/,/g, '.')) || 0;
+
                                                     if (isDaily) {
                                                         mrc = Math.round(mrc * priceMultiplier);
                                                     }
+                                                    mrc = Math.round(mrc * (1 - discountPercent / 100));
 
                                                     return acc + ((otc + (mrc * contractDuration)) * qty);
                                                 }, totalLocalLoopMrc * (isDaily ? 1 : (parseInt(subscriptionDuration) || 12))).toLocaleString('id-ID'), bold: true, font: "Aptos Narrow", alignment: AlignmentType.RIGHT })],
+                                                columnSpan: 2,
+                                                shading: { fill: "E0E0E0" },
+                                                verticalAlign: VerticalAlign.CENTER
+                                            })
+                                        ]
+                                    }),
+                                    // Row 4: Total Biaya Selama X Bulan (Incl PPN)
+                                    new TableRow({
+                                        children: [
+                                            new TableCell({ 
+                                                children: [new Paragraph({ text: `Total Biaya Selama ${subscriptionDuration.toUpperCase()} (Incl. PPN 11%)`, bold: true, font: "Aptos Narrow", alignment: AlignmentType.RIGHT })],
+                                                columnSpan: grandTotalLabelSpan,
+                                                shading: { fill: "E0E0E0" },
+                                                verticalAlign: VerticalAlign.CENTER
+                                            }),
+                                            new TableCell({ 
+                                                children: [new Paragraph({ text: services.reduce((acc, s) => {
+                                                    const contractDuration = isDaily ? 1 : (parseInt(subscriptionDuration) || 12);
+                                                    let otc = 0;
+                                                     let mrc = parseFloat(s.mrc) || 0;
+                                                     const qty = s.quantity || 1;
+
+                                                     if (s.type === 'Metro Ethernet') {
+                                                         s.sites.forEach(() => {
+                                                             otc += parseFloat(s.otc) || 0;
+                                                         });
+                                                     } else {
+                                                         otc += parseFloat(s.otc) || 0;
+                                                     }
+                                                    
+                                                    // Discount
+                                                    const discountValRaw = s.discountPercent;
+                                                    const discountPercent = (typeof discountValRaw === 'number') ? discountValRaw : parseFloat(String(discountValRaw || 0).replace(/,/g, '.')) || 0;
+
+                                                    if (isDaily) {
+                                                        mrc = Math.round(mrc * priceMultiplier);
+                                                    }
+                                                    mrc = Math.round(mrc * (1 - discountPercent / 100));
+
+                                                    const totalExclPpn = (otc + (mrc * contractDuration)) * qty;
+                                                    const totalInclPpn = Math.round(totalExclPpn * 1.11);
+
+                                                    return acc + totalInclPpn;
+                                                }, Math.round(totalLocalLoopMrc * (isDaily ? 1 : (parseInt(subscriptionDuration) || 12)) * 1.11)).toLocaleString('id-ID'), bold: true, font: "Aptos Narrow", alignment: AlignmentType.RIGHT })],
                                                 columnSpan: 2,
                                                 shading: { fill: "E0E0E0" },
                                                 verticalAlign: VerticalAlign.CENTER
