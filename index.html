@@ -1541,6 +1541,7 @@
             const hasWMSFit = services.some(s => s.type === 'WMS Fit');
             const hasWMSLite = services.some(s => s.type === 'WMS Lite');
             const isWMSFamily = hasWMS || hasWMSFit || hasWMSLite;
+            const hasVpnIp = services.some(s => s.type === 'VPN IP');
 
             // VPN IP CoS Logic
             const vpnIpServices = services.filter(s => s.type === 'VPN IP');
@@ -1554,6 +1555,7 @@
             if (hasWMS) slgItems.push("WMS : 99%");
             if (hasWMSFit) slgItems.push("WMS Fit : 99%");
             if (hasWMSLite) slgItems.push("WMS Lite : 99%");
+            if (hasVpnIp) slgItems.push("VPN IP : 99.5%");
 
             const termsList = [
                 ...(hasWMS ? ["Layanan WMS sudah termasuk perangkat Access Point dan manage service dari Telkom."] : []),
@@ -1578,7 +1580,6 @@
                     "VPN IP Best EFFORT: Mendukung aplikasi non-critical dan non delay sensitive (Intranet, Extranet). Application: Microsoft Exchange, FTP, HTTP, SMTP, Angle, Mail."
                 ] : []),
 
-                "Seluruh Biaya belum termasuk PPN (11%).",
                 isWMSFamily 
                     ? "End Delivery berupa Access Point saja yang disediakan Telkom TANPA interface port LAN-Ethernet." 
                     : "End Delivery berupa modem yang disediakan Telkom dengan interface port LAN-Ethernet.",
@@ -1610,82 +1611,8 @@
             }
 
 
-            // --- Local Loop Calculation ---
-            const localLoopRows = [];
+            // --- Local Loop Calculation Initialization ---
             let totalLocalLoopMrc = 0;
-            let localLoopIndex = 1;
-
-            const headerLocalLoopRow = new TableRow({
-                children: [
-                    "No", "Layanan", "Lokasi / Site", "Jarak (km)", "Harga/km (Rp)", "Total (Rp)", "Total Stlh PPN"
-                ].map(text => new TableCell({
-                    children: [new Paragraph({ 
-                        children: [new TextRun({ text, bold: true, color: "FFFFFF", font: "Aptos Narrow", size: 20 })], 
-                        alignment: AlignmentType.CENTER 
-                    })],
-                    shading: { fill: "CC0000" }, 
-                    verticalAlign: VerticalAlign.CENTER,
-                    margins: { top: 100, bottom: 100, left: 100, right: 100 }
-                }))
-            });
-
-            services.forEach(service => {
-                const qty = service.quantity || 1;
-                if ((service.type.toLowerCase().includes('astinet') || service.type.includes('IP Transit') || service.type === 'VPN IP') && service.distanceKm > 5) {
-                     const dist = parseFloat(service.distanceKm);
-                     const chargeableDist = dist - 5;
-                     const cost = chargeableDist * 750000 * qty;
-                     const costWithPpn = Math.round(cost * 1.11);
-                     totalLocalLoopMrc += cost;
-                     
-                     localLoopRows.push(new TableRow({
-                         children: [
-                             new TableCell({ children: [new Paragraph({ text: (localLoopIndex++).toString(), alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                             new TableCell({ children: [new Paragraph({ text: service.type, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                             new TableCell({ children: [new Paragraph({ text: service.location || "-", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                             new TableCell({ children: [new Paragraph({ text: `${dist} km (Chargeable: ${chargeableDist.toFixed(1)} km)`, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                             new TableCell({ children: [new Paragraph({ text: "750.000", alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                             new TableCell({ children: [new Paragraph({ text: cost.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                             new TableCell({ children: [new Paragraph({ text: costWithPpn.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                         ]
-                     }));
-                } else if (service.type === 'Metro Ethernet') {
-                    service.sites.forEach(site => {
-                        if (site.distanceKm > 5) {
-                             const dist = parseFloat(site.distanceKm);
-                             const chargeableDist = dist - 5;
-                             const cost = chargeableDist * 950000 * qty;
-                             totalLocalLoopMrc += cost;
-
-                             localLoopRows.push(new TableRow({
-                                 children: [
-                                     new TableCell({ children: [new Paragraph({ text: (localLoopIndex++).toString(), alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                                     new TableCell({ children: [new Paragraph({ text: "Metro Ethernet", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                                     new TableCell({ children: [new Paragraph({ text: site.name, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                                     new TableCell({ children: [new Paragraph({ text: `${dist} km (Chargeable: ${chargeableDist.toFixed(1)} km)`, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                                     new TableCell({ children: [new Paragraph({ text: "950.000", alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                                     new TableCell({ children: [new Paragraph({ text: cost.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                                 ]
-                             }));
-                        }
-                    });
-                }
-            });
-
-            if (localLoopRows.length > 0) {
-                localLoopRows.unshift(headerLocalLoopRow);
-                
-                // Add Total Row for Local Loop
-                 localLoopRows.push(new TableRow({
-                    children: [
-                        new TableCell({ 
-                            columnSpan: 5,
-                            children: [new Paragraph({ text: "Total Biaya Local Loop (Bulanan)", alignment: AlignmentType.RIGHT, bold: true, font: "Aptos Narrow" })] 
-                        }),
-                        new TableCell({ children: [new Paragraph({ text: totalLocalLoopMrc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, bold: true, font: "Aptos Narrow" })] }),
-                    ]
-                }));
-            }
 
             const doc = new Document({
                 fonts: [
@@ -1763,11 +1690,6 @@
 
                         // Services Tables
                         ...services.flatMap((service, index) => {
-                            // Logic to determine rows
-                            // If Metro Ethernet, we might have multiple rows (sites)
-                            // If Astinet, usually 1 row per service entry unless user added multiple sites logic to astinet too? 
-                            // Current form allows adding "Sites" only to Metro. Other services have "Location".
-                            
                             const isMetro = service.type === 'Metro Ethernet';
                             const rows = [];
                             
@@ -1776,7 +1698,7 @@
                                     const col4Header = service.type === 'SIP Trunk' ? "Spesifikasi" : `BW (${bwUnit})`;
                                     
                                     const isAstinet = service.type.toLowerCase().includes('astinet') || service.type.includes('IP Transit');
-                                    const headerCols = ["No", "List Kebutuhan", "Site / Lokasi", col4Header, "Harga Aktivasi (Rp)", "Harga Bulanan (Rp)", "Harga Stlh PPN"];
+                                    const headerCols = ["No", "List Kebutuhan", "Site / Lokasi", col4Header, "Harga Aktivasi (Rp)", "Harga Bulanan (Rp)"];
                                     if (!isAstinet) headerCols.push("Ket");
 
                                     const headerRow = new TableRow({
@@ -1848,7 +1770,6 @@
                                     totalMrc += siteMrc * qty;
 
                                     const siteMrcTotal = siteMrc * qty;
-                                    const siteMrcTotalWithPpn = Math.round(siteMrcTotal * 1.11);
 
                                     rows.push(new TableRow({
                                         children: [
@@ -1858,10 +1779,30 @@
                                             new TableCell({ children: [new Paragraph({ text: site.bandwidth.replace(/\D/g,''), alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }), 
                                             new TableCell({ children: [new Paragraph({ text: siteOtc > 0 ? (siteOtc * qty).toLocaleString('id-ID') : "-", alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                                             new TableCell({ children: [new Paragraph({ text: siteMrcTotal.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                                            new TableCell({ children: [new Paragraph({ text: siteMrcTotalWithPpn.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                                             new TableCell({ children: [new Paragraph({ text: i === 0 ? "Backhaul" : "Site", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }), 
                                         ]
                                     }));
+                                    
+                                    // Local Loop for Metro Site
+                                    if (site.distanceKm > 5) {
+                                         const dist = parseFloat(site.distanceKm);
+                                         const chargeableDist = dist - 5;
+                                         const cost = chargeableDist * 950000 * qty;
+                                         totalLocalLoopMrc += cost;
+                                         totalMrc += cost;
+
+                                         rows.push(new TableRow({
+                                             children: [
+                                                 new TableCell({ children: [new Paragraph({ text: "", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
+                                                 new TableCell({ children: [new Paragraph({ text: "Local Loop / Last Mile", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
+                                                 new TableCell({ children: [new Paragraph({ text: site.name, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
+                                                 new TableCell({ children: [new Paragraph({ text: `${dist} km`, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
+                                                 new TableCell({ children: [new Paragraph({ text: "-", alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
+                                                 new TableCell({ children: [new Paragraph({ text: cost.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
+                                                 new TableCell({ children: [new Paragraph({ text: "@ Rp 950.000/km", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
+                                            ]
+                                         }));
+                                    }
                                 });
                             } else {
                                 // Non-Metro (Astinet etc)
@@ -1879,8 +1820,6 @@
                                 totalOtc = otc * qty;
                                 totalMrc = mrc * qty;
 
-                                const mrcTotalWithPpn = Math.round(totalMrc * 1.11);
-
                                 const rowCells = [
                                         new TableCell({ children: [new Paragraph({ text: "1", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
                                         new TableCell({ children: [new Paragraph({ text: `${service.type}${qty > 1 ? ` (x${qty})` : ''}`, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
@@ -1890,14 +1829,13 @@
                                                 new Paragraph({ 
                                                     children: (service.type === 'Astinet Beda Bandwidth' || service.type === 'IP Transit Beda Bandwidth')
                                                         ? service.bandwidth.split('|').map((part, idx) => new TextRun({ text: part.trim(), break: idx > 0 ? 1 : 0, font: "Aptos Narrow" }))
-                                                        : [new TextRun({ text: service.type === 'SIP Trunk' ? `${service.jumlahNomor || 3} No / ${service.concurrentCall || 3} CC / ${service.ipAddress || 1} IP / ${service.sipTrunkType || 'Standard'}` : service.bandwidth.replace(/\D/g,''), font: "Aptos Narrow" })],
+                                                        : [new TextRun({ text: service.type === 'SIP Trunk' ? `${service.jumlahNomor || 3} No / ${service.concurrentCall || 3} CC / ${service.ipAddress || 1} IP / ${service.sipTrunkType || 'Standard'}` : String(service.bandwidth).replace(/[^\d.,]/g,''), font: "Aptos Narrow" })],
                                                     alignment: AlignmentType.CENTER 
                                                 })
                                             ] 
                                         }),
                                         new TableCell({ children: [new Paragraph({ text: (otc * qty).toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                                         new TableCell({ children: [new Paragraph({ text: (mrc * qty).toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                                        new TableCell({ children: [new Paragraph({ text: mrcTotalWithPpn.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                                 ];
                                 if (!isAstinet) {
                                     rowCells.push(new TableCell({ children: [new Paragraph({ text: service.remarks || "-", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }));
@@ -1906,15 +1844,38 @@
                                 rows.push(new TableRow({
                                     children: rowCells
                                 }));
+                                
+                                // Local Loop for Non-Metro
+                                if ((service.type.toLowerCase().includes('astinet') || service.type.includes('IP Transit') || service.type === 'VPN IP') && service.distanceKm > 5) {
+                                     const dist = parseFloat(service.distanceKm);
+                                     const chargeableDist = dist - 5;
+                                     const cost = chargeableDist * 750000 * qty;
+                                     totalLocalLoopMrc += cost;
+                                     totalMrc += cost;
+
+                                     const llRowCells = [
+                                         new TableCell({ children: [new Paragraph({ text: "", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
+                                         new TableCell({ children: [new Paragraph({ text: "Local Loop / Last Mile", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
+                                         new TableCell({ children: [new Paragraph({ text: service.location || "-", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
+                                         new TableCell({ children: [new Paragraph({ text: `${dist} km`, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
+                                         new TableCell({ children: [new Paragraph({ text: "-", alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
+                                         new TableCell({ children: [new Paragraph({ text: cost.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
+                                     ];
+                                     if (!isAstinet) {
+                                        llRowCells.push(new TableCell({ children: [new Paragraph({ text: "@ Rp 750.000/km", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }));
+                                    }
+                                     
+                                     rows.push(new TableRow({
+                                         children: llRowCells
+                                     }));
+                                }
                             }
 
                             // Total Row
                             const contractDuration = isDaily ? 1 : (parseInt(subscriptionDuration) || 12);
                             const totalContract = totalOtc + (totalMrc * contractDuration);
-                            
-                            const totalMrcWithPpn = Math.round(totalMrc * 1.11);
                             const totalContractWithPpn = Math.round(totalContract * 1.11);
-
+                            
                             const totalRowCells = [
                                     new TableCell({ 
                                         columnSpan: 4,
@@ -1922,7 +1883,6 @@
                                     }),
                                     new TableCell({ children: [new Paragraph({ text: totalOtc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                                     new TableCell({ children: [new Paragraph({ text: totalMrc.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                                    new TableCell({ children: [new Paragraph({ text: totalMrcWithPpn.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                             ];
                             if (!isAstinet) {
                                 totalRowCells.push(new TableCell({ children: [new Paragraph({ text: "", font: "Aptos Narrow" })] }));
@@ -1936,13 +1896,12 @@
                             const contractRowCells = [
                                     new TableCell({ 
                                         columnSpan: 4,
-                                        children: [new Paragraph({ text: `Total Biaya Selama ${subscriptionDuration}`, alignment: AlignmentType.RIGHT, bold: true, font: "Aptos Narrow" })] 
+                                        children: [new Paragraph({ text: `Total Biaya Selama ${subscriptionDuration} + OTC`, alignment: AlignmentType.RIGHT, bold: true, font: "Aptos Narrow" })] 
                                     }),
                                     new TableCell({ 
                                         columnSpan: 2,
                                         children: [new Paragraph({ text: totalContract.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, bold: true, font: "Aptos Narrow" })] 
                                     }),
-                                    new TableCell({ children: [new Paragraph({ text: totalContractWithPpn.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, bold: true, font: "Aptos Narrow" })] }),
                             ];
                             if (!isAstinet) {
                                 contractRowCells.push(new TableCell({ children: [new Paragraph({ text: "", font: "Aptos Narrow" })] }));
@@ -1963,23 +1922,8 @@
                                 })
                             ];
                         }),
-
-                        // Local Loop Table
-                        ...(localLoopRows.length > 0 ? [
-                            new Paragraph({
-                                children: [new TextRun({ text: "Biaya Local Loop / Last Mile*", bold: true, size: 24, font: "Aptos Narrow" })],
-                                spacing: { before: 200, after: 50 }
-                            }),
-                            new Paragraph({
-                                children: [new TextRun({ text: "*(Tarif tambahan apabila di atas 5 km dari site Telkom terdekat ke lokasi pelanggan)", italics: true, size: 16, font: "Aptos Narrow" })],
-                                spacing: { after: 100 }
-                            }),
-                            new Table({
-                                rows: localLoopRows,
-                                width: { size: 100, type: WidthType.PERCENTAGE },
-                            }),
-                            new Paragraph({ text: "", spacing: { after: 0 } })
-                        ] : []),
+                        
+                        new Paragraph({ text: "" }),
 
                         // Grand Total (only if > 1 service or Local Loop exists)
                         ...(services.length > 1 || totalLocalLoopMrc > 0 ? [
@@ -2044,7 +1988,7 @@
                                     new TableRow({
                                         children: [
                                             new TableCell({ 
-                                                children: [new Paragraph({ text: `Total Biaya Selama ${subscriptionDuration.toUpperCase()}`, bold: true, font: "Aptos Narrow", alignment: AlignmentType.RIGHT })],
+                                                children: [new Paragraph({ text: `Total Biaya Selama ${subscriptionDuration.toUpperCase()} + OTC`, bold: true, font: "Aptos Narrow", alignment: AlignmentType.RIGHT })],
                                                 columnSpan: grandTotalLabelSpan,
                                                 shading: { fill: "E0E0E0" },
                                                 verticalAlign: VerticalAlign.CENTER
@@ -2085,7 +2029,7 @@
                                     new TableRow({
                                         children: [
                                             new TableCell({ 
-                                                children: [new Paragraph({ text: `Total Biaya Selama ${subscriptionDuration.toUpperCase()} (Incl. PPN 11%)`, bold: true, font: "Aptos Narrow", alignment: AlignmentType.RIGHT })],
+                                                children: [new Paragraph({ text: `Total Biaya Selama ${subscriptionDuration.toUpperCase()} + OTC (Incl. PPN 11%)`, bold: true, font: "Aptos Narrow", alignment: AlignmentType.RIGHT })],
                                                 columnSpan: grandTotalLabelSpan,
                                                 shading: { fill: "E0E0E0" },
                                                 verticalAlign: VerticalAlign.CENTER
@@ -2940,10 +2884,17 @@
                 return parseFloat(normalized) || 0;
             };
 
-            const overviewRows = services.map(s => {
+            const overviewRows = [];
+            
+            services.forEach(s => {
                 let name = s.type;
                 let area = s.location || '-';
                 let bandwidth = s.bandwidth || '-';
+                
+                // Add Mbps unit for VPN IP if missing
+                if (s.type === 'VPN IP' && bandwidth !== '-' && !String(bandwidth).toLowerCase().includes('bps')) {
+                    bandwidth = `${bandwidth} Mbps`;
+                }
                 
                 if (s.type.includes('IP Transit')) {
                     area = s.zone || area;
@@ -2965,34 +2916,79 @@
                 const qty = s.quantity || 1;
                 const monthlyTotal = basePrice * qty;
                 
+                let otcPerUnit = parseFloat(s.otc) || 0;
+                if (s.type === 'Metro Ethernet' && Array.isArray(s.sites) && s.sites.length > 0) {
+                    otcPerUnit = otcPerUnit * s.sites.length;
+                }
+                const otcTotal = otcPerUnit * qty;
+                
                 // Discount
                 const discountPercent = parseDiscount(s.discountPercent);
                 const discountedMonthlyTotal = Math.round(monthlyTotal * (1 - discountPercent / 100));
                 const monthlyTotalDiscountedWithPpn = Math.round(discountedMonthlyTotal * (1 + ppnPercent / 100));
 
-                return {
+                overviewRows.push({
                     name,
                     area,
                     bandwidth,
                     monthlyTotal,
+                    otcTotal,
                     discountedMonthlyTotal,
                     monthlyTotalDiscountedWithPpn
-                };
+                });
+                
+                // Local Loop / Last Mile Logic
+                if (s.type === 'Metro Ethernet' && s.sites) {
+                    s.sites.forEach(site => {
+                        const dist = parseFloat(site.distanceKm) || 0;
+                        if (dist > 5) {
+                            const cost = (dist - 5) * 950000 * qty;
+                            const costWithPpn = Math.round(cost * (1 + ppnPercent / 100));
+                            overviewRows.push({
+                                name: 'Local Loop / Last Mile',
+                                area: site.name || '-',
+                                bandwidth: `${dist} km (@ Rp 950rb/km)`,
+                                monthlyTotal: cost,
+                                otcTotal: 0,
+                                discountedMonthlyTotal: cost, // No discount for Local Loop
+                                monthlyTotalDiscountedWithPpn: costWithPpn
+                            });
+                        }
+                    });
+                } else if ((s.type.toLowerCase().includes('astinet') || s.type.includes('IP Transit') || s.type === 'VPN IP') && s.distanceKm) {
+                     const dist = parseFloat(s.distanceKm) || 0;
+                     if (dist > 5) {
+                         const cost = (dist - 5) * 750000 * qty;
+                         const costWithPpn = Math.round(cost * (1 + ppnPercent / 100));
+                         overviewRows.push({
+                            name: 'Local Loop / Last Mile',
+                            area: s.location || '-',
+                            bandwidth: `${dist} km (@ Rp 750rb/km)`,
+                            monthlyTotal: cost,
+                            otcTotal: 0,
+                            discountedMonthlyTotal: cost, // No discount for Local Loop
+                            monthlyTotalDiscountedWithPpn: costWithPpn
+                        });
+                     }
+                }
             });
 
             const totalMonthly = overviewRows.reduce((acc, row) => acc + row.monthlyTotal, 0);
+            const totalOtc = overviewRows.reduce((acc, row) => acc + (row.otcTotal || 0), 0);
             const totalMonthlyDiscounted = overviewRows.reduce((acc, row) => acc + row.discountedMonthlyTotal, 0);
             const totalMonthlyDiscountedWithPpn = overviewRows.reduce((acc, row) => acc + row.monthlyTotalDiscountedWithPpn, 0);
             
             // Calculate contract total
-            const totalContract = isDaily ? totalMonthly : (totalMonthly * durationValue);
-            const totalContractDiscounted = isDaily ? totalMonthlyDiscounted : (totalMonthlyDiscounted * durationValue);
-            const totalContractDiscountedWithPpnCalc = isDaily ? totalMonthlyDiscountedWithPpn : (totalMonthlyDiscountedWithPpn * durationValue);
+            const totalOtcWithPpn = Math.round(totalOtc * (1 + ppnPercent / 100));
+            const totalContract = (isDaily ? totalMonthly : (totalMonthly * durationValue)) + totalOtc;
+            const totalContractDiscounted = (isDaily ? totalMonthlyDiscounted : (totalMonthlyDiscounted * durationValue)) + totalOtc;
+            const totalContractDiscountedWithPpnCalc = (isDaily ? totalMonthlyDiscountedWithPpn : (totalMonthlyDiscountedWithPpn * durationValue)) + totalOtcWithPpn;
             
             const totalContractDiscountedWithPpn = Math.round(totalContractDiscounted * (1 + ppnPercent / 100)); // Keep this for consistency or replace with totalContractDiscountedWithPpnCalc? 
             // Actually, Math.round(sum) vs sum(Math.round) can differ by 1. Usually sum(Math.round) is safer if individual items are billed.
             // But let's use the sum of the column for consistency with the table.
             
+            const hasDiscount = overviewRows.some(row => row.monthlyTotal !== row.discountedMonthlyTotal);
             const uniqueDiscounts = [...new Set(services.map(s => parseDiscount(s.discountPercent)))];
             const headerDiscountLabel = uniqueDiscounts.length === 1 && uniqueDiscounts[0] > 0
                 ? `(Disc. ${uniqueDiscounts[0]}%)`
@@ -3441,7 +3437,7 @@
                                                         onCustomChange={(isCustom) => updateSite(service.id, sIdx, 'isCustomBandwidth', isCustom)}
                                                     />
                                                     <div className="flex gap-2 items-center mt-2">
-                                                        <label className="text-xs text-gray-600">Jarak ke Kantor Telkom (km):</label>
+                                                        <label className="text-xs text-gray-600">Jarak Site ke Kantor Telkom Terdekat (km):</label>
                                                         <input
                                                             type="number"
                                                             min="0"
@@ -3540,7 +3536,7 @@
                                     
                                     {(service.type.toLowerCase().includes('astinet') || service.type.includes('IP Transit') || service.type === 'VPN IP') && (
                                         <div className="form-group">
-                                            <label>{service.type === 'VPN IP' ? 'Jarak ... km dari titik pelanggan ke kantor Telkom terdekat' : 'Jarak ke Kantor Telkom (km)'}</label>
+                                            <label>Jarak Site ke Kantor Telkom Terdekat (km)</label>
                                             <input
                                                 type="number"
                                                 min="0"
@@ -3550,6 +3546,18 @@
                                                 onChange={(e) => updateService(service.id, 'distanceKm', e.target.value)}
                                                 placeholder="0"
                                             />
+                                            {(() => {
+                                                const dist = parseFloat(service.distanceKm) || 0;
+                                                if (dist > 5) {
+                                                    const cost = (dist - 5) * 750000;
+                                                    return (
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            Chargeable: {(dist - 5).toLocaleString('id-ID')} km x Rp 750.000 = Rp {cost.toLocaleString('id-ID')}
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
                                     )}
                                     </>
@@ -3688,12 +3696,15 @@
                                             <th className="px-3 py-2 text-left">Layanan</th>
                                             <th className="px-3 py-2 text-left">Area</th>
                                             <th className="px-3 py-2 text-left">Bandwidth</th>
+                                            <th className="px-3 py-2 text-right">Tarif OTC</th>
                                             <th className="px-3 py-2 text-right">
                                                 Tarif per {isDaily ? `${durationValue} Hari` : 'Bulan'}
                                             </th>
-                                            <th className="px-3 py-2 text-right">
-                                                {headerDiscountLabel}
-                                            </th>
+                                            {hasDiscount && (
+                                                <th className="px-3 py-2 text-right">
+                                                    {headerDiscountLabel}
+                                                </th>
+                                            )}
                                             <th className="px-3 py-2 text-right">
                                                 Harga Stlh PPN
                                             </th>
@@ -3706,11 +3717,16 @@
                                                 <td className="px-3 py-2">{row.area}</td>
                                                 <td className="px-3 py-2">{row.bandwidth}</td>
                                                 <td className="px-3 py-2 text-right">
-                                                    {row.monthlyTotal.toLocaleString('id-ID')}
+                                                    {row.otcTotal.toLocaleString('id-ID')}
                                                 </td>
                                                 <td className="px-3 py-2 text-right">
-                                                    {row.discountedMonthlyTotal.toLocaleString('id-ID')}
+                                                    {row.monthlyTotal.toLocaleString('id-ID')}
                                                 </td>
+                                                {hasDiscount && (
+                                                    <td className="px-3 py-2 text-right">
+                                                        {row.discountedMonthlyTotal.toLocaleString('id-ID')}
+                                                    </td>
+                                                )}
                                                 <td className="px-3 py-2 text-right">
                                                     {row.monthlyTotalDiscountedWithPpn.toLocaleString('id-ID')}
                                                 </td>
@@ -3721,32 +3737,42 @@
                                         <tr className="bg-red-50 font-semibold">
                                             <td className="px-3 py-2" colSpan="3">Total</td>
                                             <td className="px-3 py-2 text-right">
-                                                {totalMonthly.toLocaleString('id-ID')}
+                                                {totalOtc.toLocaleString('id-ID')}
                                             </td>
                                             <td className="px-3 py-2 text-right">
-                                                {totalMonthlyDiscounted.toLocaleString('id-ID')}
+                                                {totalMonthly.toLocaleString('id-ID')}
                                             </td>
+                                            {hasDiscount && (
+                                                <td className="px-3 py-2 text-right">
+                                                    {totalMonthlyDiscounted.toLocaleString('id-ID')}
+                                                </td>
+                                            )}
                                             <td className="px-3 py-2 text-right">
                                                 {totalMonthlyDiscountedWithPpn.toLocaleString('id-ID')}
                                             </td>
                                         </tr>
                                         <tr className="bg-red-100 font-semibold">
                                             <td className="px-3 py-2" colSpan="3">
-                                                Total {durationLabel}
+                                                Total {durationLabel} + OTC
                                             </td>
                                             <td className="px-3 py-2 text-right">
-                                                {totalContract.toLocaleString('id-ID')}
+                                                {totalOtc.toLocaleString('id-ID')}
                                             </td>
                                             <td className="px-3 py-2 text-right">
-                                                {totalContractDiscounted.toLocaleString('id-ID')}
+                                                {(isDaily ? totalMonthly : (totalMonthly * durationValue)).toLocaleString('id-ID')}
                                             </td>
+                                            {hasDiscount && (
+                                                <td className="px-3 py-2 text-right">
+                                                    {(isDaily ? totalMonthlyDiscounted : (totalMonthlyDiscounted * durationValue)).toLocaleString('id-ID')}
+                                                </td>
+                                            )}
                                             <td className="px-3 py-2 text-right">
-                                                {totalContractDiscountedWithPpnCalc.toLocaleString('id-ID')}
+                                                {(isDaily ? totalMonthlyDiscountedWithPpn : (totalMonthlyDiscountedWithPpn * durationValue)).toLocaleString('id-ID')}
                                             </td>
                                         </tr>
                                         <tr className="bg-red-200 font-bold">
-                                            <td className="px-3 py-2 text-right" colSpan="5">
-                                                Total {durationLabel} (Incl. PPN {ppnPercent}%)
+                                            <td className="px-3 py-2 text-right" colSpan={hasDiscount ? 6 : 5}>
+                                                Total {durationLabel} + OTC (Incl. PPN {ppnPercent}%)
                                             </td>
                                             <td className="px-3 py-2 text-right">
                                                 {totalContractDiscountedWithPpnCalc.toLocaleString('id-ID')}
