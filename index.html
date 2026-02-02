@@ -1767,9 +1767,18 @@
                                     const siteOtc = parseFloat(service.otc) || 0;
 
                                     totalOtc += siteOtc * qty;
-                                    totalMrc += siteMrc * qty;
 
-                                    const siteMrcTotal = siteMrc * qty;
+                                    let llCost = 0;
+                                    // Local Loop for Metro Site
+                                    if (site.distanceKm > 5) {
+                                         const dist = parseFloat(site.distanceKm);
+                                         const chargeableDist = dist - 5;
+                                         llCost = chargeableDist * 950000 * qty;
+                                         totalLocalLoopMrc += llCost;
+                                    }
+
+                                    const siteMrcTotal = (siteMrc * qty) + llCost;
+                                    totalMrc += siteMrcTotal;
 
                                     rows.push(new TableRow({
                                         children: [
@@ -1782,27 +1791,6 @@
                                             new TableCell({ children: [new Paragraph({ text: i === 0 ? "Backhaul" : "Site", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }), 
                                         ]
                                     }));
-                                    
-                                    // Local Loop for Metro Site
-                                    if (site.distanceKm > 5) {
-                                         const dist = parseFloat(site.distanceKm);
-                                         const chargeableDist = dist - 5;
-                                         const cost = chargeableDist * 950000 * qty;
-                                         totalLocalLoopMrc += cost;
-                                         totalMrc += cost;
-
-                                         rows.push(new TableRow({
-                                             children: [
-                                                 new TableCell({ children: [new Paragraph({ text: "", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                                                 new TableCell({ children: [new Paragraph({ text: "Local Loop / Last Mile", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                                                 new TableCell({ children: [new Paragraph({ text: site.name, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                                                 new TableCell({ children: [new Paragraph({ text: `${dist} km`, alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                                                 new TableCell({ children: [new Paragraph({ text: "-", alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                                                 new TableCell({ children: [new Paragraph({ text: cost.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                                                 new TableCell({ children: [new Paragraph({ text: "@ Rp 950.000/km", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
-                                            ]
-                                         }));
-                                    }
                                 });
                             } else {
                                 // Non-Metro (Astinet etc)
@@ -1818,7 +1806,18 @@
                                 mrc = Math.round(mrc * (1 - discountPercent / 100));
 
                                 totalOtc = otc * qty;
-                                totalMrc = mrc * qty;
+                                
+                                let llCost = 0;
+                                // Local Loop for Non-Metro (Merged into Monthly)
+                                if ((service.type.toLowerCase().includes('astinet') || service.type.includes('IP Transit') || service.type === 'VPN IP') && service.distanceKm > 5) {
+                                     const dist = parseFloat(service.distanceKm);
+                                     const chargeableDist = dist - 5;
+                                     llCost = chargeableDist * 750000 * qty;
+                                     totalLocalLoopMrc += llCost;
+                                }
+
+                                const serviceMrcTotal = (mrc * qty) + llCost;
+                                totalMrc = serviceMrcTotal;
 
                                 const rowCells = [
                                         new TableCell({ children: [new Paragraph({ text: "1", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }),
@@ -1835,7 +1834,7 @@
                                             ] 
                                         }),
                                         new TableCell({ children: [new Paragraph({ text: (otc * qty).toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
-                                        new TableCell({ children: [new Paragraph({ text: (mrc * qty).toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
+                                        new TableCell({ children: [new Paragraph({ text: serviceMrcTotal.toLocaleString('id-ID'), alignment: AlignmentType.RIGHT, font: "Aptos Narrow" })] }),
                                 ];
                                 if (!isAstinet) {
                                     rowCells.push(new TableCell({ children: [new Paragraph({ text: service.remarks || "-", alignment: AlignmentType.CENTER, font: "Aptos Narrow" })] }));
@@ -1845,8 +1844,8 @@
                                     children: rowCells
                                 }));
                                 
-                                // Local Loop for Non-Metro
-                                if ((service.type.toLowerCase().includes('astinet') || service.type.includes('IP Transit') || service.type === 'VPN IP') && service.distanceKm > 5) {
+                                // Local Loop for Non-Metro (Row Removed)
+                                if (false) {
                                      const dist = parseFloat(service.distanceKm);
                                      const chargeableDist = dist - 5;
                                      const cost = chargeableDist * 750000 * qty;
@@ -1925,8 +1924,8 @@
                         
                         new Paragraph({ text: "" }),
 
-                        // Grand Total (only if > 1 service or Local Loop exists)
-                        ...(services.length > 1 || totalLocalLoopMrc > 0 ? [
+                        // Grand Total (only if > 1 service)
+                        ...(services.length > 1 ? [
                             new Table({
                                 rows: [
                                     // Row 1: Total OTC
