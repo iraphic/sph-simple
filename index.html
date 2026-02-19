@@ -1257,40 +1257,81 @@
         const calculateInterpolatedPrice = (bwVal, location, pricingTable) => {
             if (!bwVal || !location || !pricingTable) return null;
 
-            const sortedKeys = Object.keys(pricingTable)
+            const allKeys = Object.keys(pricingTable)
                 .map(k => parseFloat(k))
                 .sort((a, b) => a - b);
 
-            // Exact match
-            if (pricingTable[bwVal] && pricingTable[bwVal][location]) {
+            const keysWithLocation = allKeys.filter(k => {
+                const row = pricingTable[k];
+                return row && row[location] !== undefined;
+            });
+
+            if (keysWithLocation.length === 0) return null;
+
+            if (pricingTable[bwVal] && pricingTable[bwVal][location] !== undefined) {
                 return pricingTable[bwVal][location];
             }
 
-            // Find range
             let lower = null;
             let upper = null;
 
-            for (let k of sortedKeys) {
-                if (k < bwVal) lower = k;
-                if (k > bwVal) {
+            for (let k of keysWithLocation) {
+                if (k <= bwVal) lower = k;
+                if (k >= bwVal) {
                     upper = k;
                     break;
                 }
             }
 
-            if (lower !== null && upper !== null) {
+            if (lower !== null && upper !== null && lower !== upper) {
                 const priceA = pricingTable[lower][location];
                 const priceB = pricingTable[upper][location];
 
                 if (priceA !== undefined && priceB !== undefined) {
                     const x = bwVal - lower;
                     const y = upper - lower;
-                    // Formula: Tarif C = Tarif A + ( (x/y) * (Tarif B - Tarif A) )
                     return priceA + ((x / y) * (priceB - priceA));
                 }
             }
 
+            const nearestKey = upper !== null ? upper : lower;
+            if (nearestKey !== null && pricingTable[nearestKey] && pricingTable[nearestKey][location] !== undefined) {
+                return pricingTable[nearestKey][location];
+            }
+
             return null;
+        };
+
+        const calculateAstinetAutoMrc = (service) => {
+            if (!service) return null;
+            if (!['Astinet', 'Astinet Lite', 'Astinet Fit'].includes(service.type)) return null;
+
+            const bwVal = parseBandwidth(service.bandwidth);
+            if (!(bwVal > 0 && service.location)) return null;
+
+            let pricingTable = null;
+            if (service.type === 'Astinet') pricingTable = ASTINET_PRICING;
+            else if (service.type === 'Astinet Lite') pricingTable = ASTINET_LITE_PRICING;
+            else if (service.type === 'Astinet Fit') pricingTable = ASTINET_FIT_PRICING;
+
+            if (!pricingTable) return null;
+
+            let lookupLocation = service.location;
+            let multiplier = 1.0;
+
+            if (service.location === 'NTT') {
+                const isSpecialLiteFit = (service.type === 'Astinet Lite' || service.type === 'Astinet Fit') && bwVal === 100;
+                if (service.type !== 'Astinet' && !isSpecialLiteFit) {
+                    lookupLocation = 'Kalimantan & KTI';
+                }
+            } else if (service.location === 'Sulawesi Selatan') {
+                lookupLocation = 'Kalimantan & KTI';
+                multiplier = 1.3;
+            }
+
+            const price = calculateInterpolatedPrice(bwVal, lookupLocation, pricingTable);
+            if (price === null) return null;
+            return Math.round(price * multiplier);
         };
 
         const readFileAsArrayBuffer = (file) => {
@@ -2362,39 +2403,11 @@
                     if (s.id === id) {
                         const updated = { ...s, [field]: value };
                         
-                        // Logic for Astinet & Astinet Lite & Astinet Fit Auto-Pricing
                         if (['Astinet', 'Astinet Lite', 'Astinet Fit'].includes(updated.type)) {
                             if (field === 'bandwidth' || field === 'location' || field === 'type') {
-                                const bwVal = parseBandwidth(updated.bandwidth);
-                                let pricingTable = null;
-                                if (updated.type === 'Astinet') pricingTable = ASTINET_PRICING;
-                                else if (updated.type === 'Astinet Lite') pricingTable = ASTINET_LITE_PRICING;
-                                else if (updated.type === 'Astinet Fit') pricingTable = ASTINET_FIT_PRICING;
-
-                                if (bwVal > 0 && updated.location && pricingTable) {
-                                    // Handle Special Zones (NTT & Sulawesi Selatan)
-                                    let lookupLocation = updated.location;
-                                    let multiplier = 1.0;
-                                    
-                                    if (updated.location === 'NTT') {
-                                        // Astinet Standard has explicit NTT prices.
-                                        // Lite and Fit have explicit NTT prices ONLY for 100 Mbps, otherwise fallback to Kalimantan & KTI.
-                                        const isSpecialLiteFit = (updated.type === 'Astinet Lite' || updated.type === 'Astinet Fit') && bwVal === 100;
-                                        
-                                        if (updated.type !== 'Astinet' && !isSpecialLiteFit) {
-                                            lookupLocation = 'Kalimantan & KTI';
-                                        }
-                                    } else if (updated.location === 'Sulawesi Selatan') {
-                                        lookupLocation = 'Kalimantan & KTI';
-                                        multiplier = 1.3;
-                                    }
-
-                                    const price = calculateInterpolatedPrice(bwVal, lookupLocation, pricingTable);
-                                    if (price !== null) {
-                                        updated.mrc = Math.round(price * multiplier);
-                                    } else {
-                                        updated.mrc = '';
-                                    }
+                                const autoMrc = calculateAstinetAutoMrc(updated);
+                                if (autoMrc !== null) {
+                                    updated.mrc = autoMrc;
                                 } else if (field === 'location' && value === '') {
                                     updated.mrc = '';
                                 }
@@ -2904,9 +2917,13 @@
                     }
                 }
 
-                // Calculate price
-                // Base price (before discount)
                 let basePrice = s.mrc || 0;
+                if (basePrice === 0 && ['Astinet', 'Astinet Lite', 'Astinet Fit'].includes(s.type)) {
+                    const autoMrc = calculateAstinetAutoMrc(s);
+                    if (autoMrc !== null) {
+                        basePrice = autoMrc;
+                    }
+                }
                 if (isDaily) {
                      basePrice = Math.round(basePrice * priceMultiplier);
                 }
