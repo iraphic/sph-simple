@@ -3013,9 +3013,9 @@
             const getDiscountAuthority = (val) => {
                 const discount = parseDiscount(val);
                 if (discount > 25 && discount <= 30) return 'EVP';
-                if (discount > 10 && discount <= 25) return 'GM';
-                if (discount > 5 && discount <= 10) return 'Mgr';
-                if (discount >= 0 && discount <= 5) return 'AM';
+                if (discount > 20 && discount <= 25) return 'GM';
+                if (discount > 15 && discount <= 20) return 'Mgr';
+                if (discount >= 0 && discount <= 15) return 'AM';
                 return null;
             };
 
@@ -3650,9 +3650,9 @@
                                                 </div>
                                                 {[
                                                     { key: 'EVP', label: 'EVP', range: '25,01 - 30%' },
-                                                    { key: 'GM', label: 'GM', range: '10,01 - 25%' },
-                                                    { key: 'Mgr', label: 'Mgr', range: '5,01 - 10%' },
-                                                    { key: 'AM', label: 'AM', range: '0 - 5%' }
+                                                    { key: 'GM', label: 'GM', range: '20,01 - 25%' },
+                                                    { key: 'Mgr', label: 'Mgr', range: '15,01 - 20%' },
+                                                    { key: 'AM', label: 'AM', range: '0 - 15%' }
                                                 ].map(row => {
                                                     const active = getDiscountAuthority(service.discountPercent ?? 0) === row.key;
                                                     return (
